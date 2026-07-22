@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -23,9 +23,7 @@ export default function PouchTypeScreen() {
   const [selected, setSelected] = useState<PouchType | null>(preset ?? null);
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  useEffect(() => {
-    if (preset) setSelected(preset);
-  }, [preset]);
+  useEffect(() => { if (preset) setSelected(preset); }, [preset]);
 
   const handleSelect = (type: PouchType) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -48,26 +46,21 @@ export default function PouchTypeScreen() {
         {OPTIONS.map((opt) => {
           const active = selected === opt.type;
           return (
-            <Pressable
+            <TouchableOpacity
               key={opt.type}
-              style={({ pressed }) => [
+              activeOpacity={0.82}
+              style={[
                 styles.card,
                 {
-                  backgroundColor: active ? colors.primary + '10' : colors.card,
+                  backgroundColor: active ? colors.primary + '12' : colors.card,
                   borderColor: active ? colors.primary : colors.border,
                   borderRadius: colors.radius,
-                  opacity: pressed ? 0.9 : 1,
                 },
               ]}
               onPress={() => handleSelect(opt.type)}
             >
               <View style={styles.cardLeft}>
-                <View
-                  style={[
-                    styles.iconWrap,
-                    { backgroundColor: active ? colors.primary : colors.secondary },
-                  ]}
-                >
+                <View style={[styles.iconWrap, { backgroundColor: active ? colors.primary : colors.secondary }]}>
                   <Feather name={opt.icon as any} size={26} color={active ? '#fff' : colors.primary} />
                 </View>
                 <View style={styles.textBlock}>
@@ -76,22 +69,13 @@ export default function PouchTypeScreen() {
                   <Text style={[styles.optDetail, { color: colors.mutedForeground }]}>{opt.detail}</Text>
                 </View>
               </View>
-              <View
-                style={[
-                  styles.radio,
-                  {
-                    borderColor: active ? colors.primary : colors.border,
-                    backgroundColor: active ? colors.primary : 'transparent',
-                  },
-                ]}
-              >
+              <View style={[styles.radio, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary : 'transparent' }]}>
                 {active && <Feather name="check" size={12} color="#fff" />}
               </View>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
-
       <View style={[styles.footer, { borderTopColor: colors.border, paddingBottom: bottomPad + 16 }]}>
         <PrimaryButton label="Continue" onPress={handleContinue} disabled={!selected} />
       </View>
@@ -101,7 +85,7 @@ export default function PouchTypeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: 20, gap: 12 },
+  scroll: { padding: 20, gap: 12, paddingBottom: 20 },
   question: { fontSize: 17, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },
   card: { flexDirection: 'row', alignItems: 'center', padding: 16, borderWidth: 1.5, gap: 12 },
   cardLeft: { flex: 1, flexDirection: 'row', gap: 14, alignItems: 'flex-start' },

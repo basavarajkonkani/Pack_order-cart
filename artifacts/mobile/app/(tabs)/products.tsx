@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -53,22 +53,16 @@ export default function ProductsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: Platform.OS === 'web' ? 100 : 90 + insets.bottom },
-        ]}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
       >
         {PRODUCTS.map((p) => (
-          <Pressable
+          <TouchableOpacity
             key={p.type}
-            style={({ pressed }) => [
+            activeOpacity={0.82}
+            style={[
               styles.card,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: colors.radius,
-                opacity: pressed ? 0.9 : 1,
-              },
+              { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
             ]}
             onPress={() => router.push({ pathname: '/configure/pouch-type', params: { preset: p.type } })}
           >
@@ -104,7 +98,7 @@ export default function ProductsScreen() {
               </View>
               <Text style={[styles.price, { color: colors.primary }]}>From {p.priceFrom}</Text>
             </View>
-          </Pressable>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
@@ -113,23 +107,13 @@ export default function ProductsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
+  header: { paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1 },
   title: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   sub: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 4 },
-  scroll: { padding: 16, gap: 14 },
+  scroll: { padding: 16, gap: 14, paddingBottom: 20 },
   card: { padding: 16, borderWidth: 1, gap: 10 },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  iconWrap: { width: 56, height: 56, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   cardTitles: { flex: 1, gap: 4 },
   productName: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   tags: { flexDirection: 'row', gap: 6 },

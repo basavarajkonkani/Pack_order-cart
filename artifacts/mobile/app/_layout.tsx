@@ -35,18 +35,13 @@ function RootLayoutNav() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="configure" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="checkout"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="order-success"
-        options={{ headerShown: false, gestureEnabled: false }}
-      />
-      <Stack.Screen
-        name="order-tracking"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="checkout" options={{ headerShown: false }} />
+      <Stack.Screen name="order-success" options={{ headerShown: false, gestureEnabled: false }} />
+      <Stack.Screen name="order-tracking" options={{ headerShown: false }} />
+      <Stack.Screen name="saved-addresses" options={{ headerShown: false }} />
+      <Stack.Screen name="gst-details" options={{ headerShown: false }} />
+      <Stack.Screen name="design-assistance" options={{ headerShown: false }} />
+      <Stack.Screen name="help-support" options={{ headerShown: false }} />
     </Stack>
   );
 }

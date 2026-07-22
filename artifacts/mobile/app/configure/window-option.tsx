@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -10,20 +10,8 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
 
 const OPTIONS: { value: WindowOption; label: string; desc: string; icon: string; benefit: string }[] = [
-  {
-    value: 'with',
-    label: 'With Window',
-    desc: 'Transparent window on the pouch',
-    icon: 'eye',
-    benefit: 'Lets customers see the product inside. Great for food, snacks, and premium items.',
-  },
-  {
-    value: 'without',
-    label: 'Without Window',
-    desc: 'Fully sealed pouch',
-    icon: 'eye-off',
-    benefit: 'Full print area on both sides. Better barrier protection. Lower cost.',
-  },
+  { value: 'with', label: 'With Window', desc: 'Transparent window on the pouch', icon: 'eye', benefit: 'Lets customers see the product inside. Great for food, snacks, and premium items.' },
+  { value: 'without', label: 'Without Window', desc: 'Fully sealed pouch', icon: 'eye-off', benefit: 'Full print area on both sides. Better barrier protection. Lower cost.' },
 ];
 
 export default function WindowOptionScreen() {
@@ -54,15 +42,15 @@ export default function WindowOptionScreen() {
         {OPTIONS.map((opt) => {
           const active = selected === opt.value;
           return (
-            <Pressable
+            <TouchableOpacity
               key={opt.value}
-              style={({ pressed }) => [
+              activeOpacity={0.82}
+              style={[
                 styles.card,
                 {
-                  backgroundColor: active ? colors.primary + '10' : colors.card,
+                  backgroundColor: active ? colors.primary + '12' : colors.card,
                   borderColor: active ? colors.primary : colors.border,
                   borderRadius: colors.radius,
-                  opacity: pressed ? 0.9 : 1,
                 },
               ]}
               onPress={() => handleSelect(opt.value)}
@@ -83,7 +71,7 @@ export default function WindowOptionScreen() {
                 <Feather name="info" size={13} color={active ? colors.primary : colors.mutedForeground} />
                 <Text style={[styles.benefit, { color: active ? colors.primary : colors.mutedForeground }]}>{opt.benefit}</Text>
               </View>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -96,7 +84,7 @@ export default function WindowOptionScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: 20, gap: 14 },
+  scroll: { padding: 20, gap: 14, paddingBottom: 20 },
   question: { fontSize: 17, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },
   card: { borderWidth: 1.5, padding: 16, gap: 12 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },

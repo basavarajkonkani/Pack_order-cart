@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -54,15 +54,15 @@ export default function MaterialTypeScreen() {
         {OPTIONS.map((opt) => {
           const active = selected === opt.value;
           return (
-            <Pressable
+            <TouchableOpacity
               key={opt.value}
-              style={({ pressed }) => [
+              activeOpacity={0.82}
+              style={[
                 styles.card,
                 {
-                  backgroundColor: active ? colors.primary + '10' : colors.card,
+                  backgroundColor: active ? colors.primary + '12' : colors.card,
                   borderColor: active ? colors.primary : colors.border,
                   borderRadius: colors.radius,
-                  opacity: pressed ? 0.9 : 1,
                 },
               ]}
               onPress={() => handleSelect(opt.value)}
@@ -87,7 +87,7 @@ export default function MaterialTypeScreen() {
                   </View>
                 ))}
               </View>
-            </Pressable>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -100,7 +100,7 @@ export default function MaterialTypeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: 20, gap: 14 },
+  scroll: { padding: 20, gap: 14, paddingBottom: 20 },
   question: { fontSize: 17, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },
   card: { borderWidth: 1.5, padding: 16, gap: 14 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },

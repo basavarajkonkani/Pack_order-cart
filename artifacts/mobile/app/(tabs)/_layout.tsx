@@ -1,144 +1,113 @@
 import React from 'react';
-import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
-import { Feather, Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
+import { Feather } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
-import { SymbolView } from 'expo-symbols';
 import { useCart } from '@/context/CartContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'house', selected: 'house.fill' }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="products">
-        <Icon sf={{ default: 'shippingbox', selected: 'shippingbox.fill' }} />
-        <Label>Products</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="orders">
-        <Icon sf={{ default: 'list.clipboard', selected: 'list.clipboard.fill' }} />
-        <Label>Orders</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="cart">
-        <Icon sf={{ default: 'cart', selected: 'cart.fill' }} />
-        <Label>Cart</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: 'person', selected: 'person.fill' }} />
-        <Label>Profile</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
-
-function ClassicTabLayout() {
+export default function TabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const isIOS = Platform.OS === 'ios';
-  const isWeb = Platform.OS === 'web';
   const { cart } = useCart();
+  const insets = useSafeAreaInsets();
+
+  const TAB_H = 56;
+  const barHeight = TAB_H + insets.bottom;
 
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
-        headerShown: false,
         tabBarStyle: {
-          position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : colors.tabBar,
+          backgroundColor: colors.card,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          height: barHeight,
+          paddingBottom: insets.bottom,
+          paddingTop: 6,
+          elevation: 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={90}
-              tint={isDark ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.tabBar }]} />
-          ),
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontFamily: 'Inter_500Medium',
+          marginTop: 2,
+        },
+        tabBarIconStyle: { marginBottom: 0 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color, focused }) => (
+            <Feather name="home" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="products"
         options={{
           title: 'Products',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="shippingbox" tintColor={color} size={24} />
-            ) : (
-              <Feather name="box" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => (
+            <Feather name="box" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="orders"
         options={{
           title: 'Orders',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="list.clipboard" tintColor={color} size={24} />
-            ) : (
-              <Feather name="clipboard" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => (
+            <Feather name="clipboard" size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
           title: 'Cart',
-          tabBarBadge: cart.length > 0 ? cart.length : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.accent, fontSize: 10 },
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="cart" tintColor={color} size={24} />
-            ) : (
+          tabBarIcon: ({ color }) => (
+            <View>
               <Feather name="shopping-cart" size={22} color={color} />
-            ),
+              {cart.length > 0 && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -8,
+                    backgroundColor: colors.accent,
+                    borderRadius: 8,
+                    minWidth: 16,
+                    height: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    paddingHorizontal: 3,
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 9, fontFamily: 'Inter_700Bold' }}>
+                    {cart.length > 9 ? '9+' : cart.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="person" tintColor={color} size={24} />
-            ) : (
-              <Feather name="user" size={22} color={color} />
-            ),
+          tabBarIcon: ({ color }) => (
+            <Feather name="user" size={22} color={color} />
+          ),
         }}
       />
     </Tabs>
   );
-}
-
-export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
 }

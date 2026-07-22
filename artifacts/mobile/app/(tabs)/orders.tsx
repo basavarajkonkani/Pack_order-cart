@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -34,15 +34,15 @@ export default function OrdersScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>My Orders</Text>
-        <Text style={[styles.sub, { color: colors.mutedForeground }]}>{orders.length} order{orders.length !== 1 ? 's' : ''} placed</Text>
+        <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+          {orders.length} order{orders.length !== 1 ? 's' : ''} placed
+        </Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: Platform.OS === 'web' ? 100 : 90 + insets.bottom },
-        ]}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
       >
         {orders.length === 0 ? (
           <View style={styles.empty}>
@@ -51,31 +51,25 @@ export default function OrdersScreen() {
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
               Your placed orders will appear here
             </Text>
-            <Pressable
-              style={({ pressed }) => [
-                styles.emptyBtn,
-                { backgroundColor: colors.primary, borderRadius: colors.radius, opacity: pressed ? 0.85 : 1 },
-              ]}
+            <TouchableOpacity
+              activeOpacity={0.82}
+              style={[styles.emptyBtn, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
               onPress={() => router.push('/configure/pouch-type')}
             >
               <Text style={styles.emptyBtnText}>Place Your First Order</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         ) : (
           orders.map((order) => {
             const stepIndex = STATUS_STEPS.indexOf(order.status);
             const statusColor = STATUS_COLORS[order.status] ?? colors.primary;
             return (
-              <Pressable
+              <TouchableOpacity
                 key={order.id}
-                style={({ pressed }) => [
+                activeOpacity={0.85}
+                style={[
                   styles.card,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    borderRadius: colors.radius,
-                    opacity: pressed ? 0.92 : 1,
-                  },
+                  { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
                 ]}
                 onPress={() =>
                   router.push({ pathname: '/order-tracking', params: { orderId: order.orderId, orderKey: order.id } })
@@ -85,7 +79,9 @@ export default function OrdersScreen() {
                   <View>
                     <Text style={[styles.orderId, { color: colors.foreground }]}>#{order.orderId}</Text>
                     <Text style={[styles.orderDate, { color: colors.mutedForeground }]}>
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                      })}
                     </Text>
                   </View>
                   <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
@@ -100,7 +96,9 @@ export default function OrdersScreen() {
                   <View key={item.id} style={styles.itemRow}>
                     <Feather name="package" size={14} color={colors.mutedForeground} />
                     <Text style={[styles.itemText, { color: colors.foreground }]}>
-                      {getPouchLabel(item.pouchType)} – {item.windowOption === 'with' ? 'Window' : 'No Window'} · {item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised'} · {item.capacity}
+                      {getPouchLabel(item.pouchType)} –{' '}
+                      {item.windowOption === 'with' ? 'Window' : 'No Window'} ·{' '}
+                      {item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised'} · {item.capacity}
                     </Text>
                   </View>
                 ))}
@@ -132,7 +130,7 @@ export default function OrdersScreen() {
                     />
                   ))}
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             );
           })
         )}
@@ -146,7 +144,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1 },
   title: { fontSize: 24, fontFamily: 'Inter_700Bold' },
   sub: { fontSize: 13, fontFamily: 'Inter_400Regular', marginTop: 4 },
-  scroll: { padding: 16, gap: 14 },
+  scroll: { padding: 16, gap: 14, paddingBottom: 20 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80, gap: 12 },
   emptyTitle: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   emptyDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center' },
@@ -156,7 +154,10 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   orderId: { fontSize: 15, fontFamily: 'Inter_700Bold' },
   orderDate: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
+  },
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   statusText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   divider: { height: 1 },

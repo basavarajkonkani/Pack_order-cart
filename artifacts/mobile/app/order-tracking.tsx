@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -15,6 +15,15 @@ const TIMELINE = [
   { key: 'delivered', label: 'Delivered', icon: 'package' },
 ];
 
+const STATUS_DATES = [
+  '20 May 2026, 10:15 AM',
+  '21 May 2026, 03:15 PM',
+  '22 May 2026, 09:00 AM',
+  '24 May 2026, 11:30 AM',
+  '28 May 2026',
+  '30 May 2026',
+];
+
 export default function OrderTrackingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -26,63 +35,30 @@ export default function OrderTrackingScreen() {
   const order = orders.find((o) => o.id === orderKey) ?? orders.find((o) => o.orderId === orderId);
   const currentStep = TIMELINE.findIndex((t) => t.key === (order?.status ?? 'confirmed'));
 
-  const statusDates = [
-    '20 May 2026, 10:15 AM',
-    '21 May 2026, 03:15 PM',
-    '22 May 2026, 09:00 AM',
-    '24 May 2026, 11:30 AM',
-    '28 May 2026',
-    '30 May 2026',
-  ];
-
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.card, paddingTop: topPad + 12, borderBottomColor: colors.border },
-        ]}
-      >
-        <Pressable
-          onPress={() => router.push('/(tabs)/orders')}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}
-        >
+      <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/(tabs)/orders')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />
-        </Pressable>
+        </TouchableOpacity>
         <Text style={[styles.title, { color: colors.foreground }]}>Order Tracking</Text>
-        <Pressable style={({ pressed }) => [pressed && { opacity: 0.6 }]}>
-          <Feather name="heart" size={22} color={colors.mutedForeground} />
-        </Pressable>
+        <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad + 24 }]}
-      >
-        {/* Order Header Card */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-          ]}
-        >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad + 24 }]}>
+        {/* Order Header */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
           <View style={styles.orderMeta}>
             <View>
               <Text style={[styles.orderIdLabel, { color: colors.mutedForeground }]}>Order ID</Text>
-              <Text style={[styles.orderIdValue, { color: colors.primary }]}>
-                {order?.orderId ?? orderId ?? 'PCH0000'}
-              </Text>
+              <Text style={[styles.orderIdValue, { color: colors.primary }]}>{order?.orderId ?? orderId ?? 'PCH0000'}</Text>
             </View>
             <View style={styles.orderDateBlock}>
               <Text style={[styles.orderIdLabel, { color: colors.mutedForeground }]}>Order Date</Text>
               <Text style={[styles.dateValue, { color: colors.foreground }]}>
                 {order
-                  ? new Date(order.createdAt).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    })
+                  ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
                   : '20 May 2026'}
               </Text>
             </View>
@@ -90,75 +66,36 @@ export default function OrderTrackingScreen() {
         </View>
 
         {/* Timeline */}
-        <View
-          style={[
-            styles.card,
-            { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-          ]}
-        >
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Order Progress</Text>
           {TIMELINE.map((step, i) => {
             const done = i <= currentStep;
             const isCurrent = i === currentStep;
             return (
               <View key={step.key} style={styles.timelineItem}>
-                {/* Line connector */}
                 <View style={styles.lineCol}>
-                  <View
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor: done ? colors.primary : colors.border,
-                        borderColor: isCurrent ? colors.primary : 'transparent',
-                      },
-                    ]}
-                  >
+                  <View style={[styles.dot, { backgroundColor: done ? colors.primary : colors.border }]}>
                     {done && <Feather name="check" size={10} color="#fff" />}
                   </View>
                   {i < TIMELINE.length - 1 && (
-                    <View
-                      style={[
-                        styles.connector,
-                        { backgroundColor: i < currentStep ? colors.primary : colors.border },
-                      ]}
-                    />
+                    <View style={[styles.connector, { backgroundColor: i < currentStep ? colors.primary : colors.border }]} />
                   )}
                 </View>
-                {/* Content */}
                 <View style={[styles.timelineContent, { marginBottom: i < TIMELINE.length - 1 ? 20 : 0 }]}>
                   <View style={styles.timelineRow}>
-                    <Feather
-                      name={step.icon as any}
-                      size={16}
-                      color={done ? colors.primary : colors.mutedForeground}
-                    />
-                    <Text
-                      style={[
-                        styles.stepLabel,
-                        { color: done ? colors.foreground : colors.mutedForeground },
-                        isCurrent && { fontFamily: 'Inter_700Bold' },
-                      ]}
-                    >
+                    <Feather name={step.icon as any} size={16} color={done ? colors.primary : colors.mutedForeground} />
+                    <Text style={[styles.stepLabel, { color: done ? colors.foreground : colors.mutedForeground, fontFamily: isCurrent ? 'Inter_700Bold' : 'Inter_500Medium' }]}>
                       {step.label}
                     </Text>
                     {isCurrent && (
-                      <View
-                        style={[styles.activeBadge, { backgroundColor: colors.primary + '20' }]}
-                      >
+                      <View style={[styles.activeBadge, { backgroundColor: colors.primary + '20' }]}>
                         <Text style={[styles.activeBadgeText, { color: colors.primary }]}>Current</Text>
                       </View>
                     )}
                   </View>
-                  {done && (
-                    <Text style={[styles.stepDate, { color: colors.mutedForeground }]}>
-                      {statusDates[i]}
-                    </Text>
-                  )}
-                  {!done && (
-                    <Text style={[styles.stepDate, { color: colors.mutedForeground }]}>
-                      Expected: {statusDates[i]}
-                    </Text>
-                  )}
+                  <Text style={[styles.stepDate, { color: colors.mutedForeground }]}>
+                    {done ? STATUS_DATES[i] : `Expected: ${STATUS_DATES[i]}`}
+                  </Text>
                 </View>
               </View>
             );
@@ -167,12 +104,7 @@ export default function OrderTrackingScreen() {
 
         {/* Order Items */}
         {order && order.items.length > 0 && (
-          <View
-            style={[
-              styles.card,
-              { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-            ]}
-          >
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Items Ordered</Text>
             {order.items.map((item) => (
               <View key={item.id} style={styles.itemRow}>
@@ -180,43 +112,32 @@ export default function OrderTrackingScreen() {
                   <Feather name="package" size={18} color={colors.primary} />
                 </View>
                 <View style={styles.itemInfo}>
-                  <Text style={[styles.itemName, { color: colors.foreground }]}>
-                    {getPouchLabel(item.pouchType)}
-                  </Text>
+                  <Text style={[styles.itemName, { color: colors.foreground }]}>{getPouchLabel(item.pouchType)}</Text>
                   <Text style={[styles.itemSpec, { color: colors.mutedForeground }]}>
-                    {item.windowOption === 'with' ? 'With Window' : 'No Window'} ·{' '}
-                    {item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised'} · {item.capacity}
+                    {item.windowOption === 'with' ? 'With Window' : 'No Window'} · {item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised'} · {item.capacity}
                   </Text>
-                  <Text style={[styles.itemSpec, { color: colors.mutedForeground }]}>
-                    Qty: {item.quantity.toLocaleString('en-IN')} pcs
-                  </Text>
+                  <Text style={[styles.itemSpec, { color: colors.mutedForeground }]}>Qty: {item.quantity.toLocaleString('en-IN')} pcs</Text>
                 </View>
-                <Text style={[styles.itemPrice, { color: colors.primary }]}>
-                  ₹{item.price.toLocaleString('en-IN')}
-                </Text>
+                <Text style={[styles.itemPrice, { color: colors.primary }]}>₹{item.price.toLocaleString('en-IN')}</Text>
               </View>
             ))}
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <View style={styles.totalRow}>
               <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total</Text>
-              <Text style={[styles.totalValue, { color: colors.primary }]}>
-                ₹{order.total.toLocaleString('en-IN')}
-              </Text>
+              <Text style={[styles.totalValue, { color: colors.primary }]}>₹{order.total.toLocaleString('en-IN')}</Text>
             </View>
           </View>
         )}
 
         {/* Support */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.supportBtn,
-            { borderColor: colors.border, borderRadius: colors.radius, backgroundColor: colors.card, opacity: pressed ? 0.7 : 1 },
-          ]}
-          onPress={() => {}}
+        <TouchableOpacity
+          activeOpacity={0.78}
+          style={[styles.supportBtn, { borderColor: colors.border, borderRadius: colors.radius, backgroundColor: colors.card }]}
+          onPress={() => router.push('/help-support')}
         >
           <Feather name="headphones" size={18} color={colors.primary} />
           <Text style={[styles.supportText, { color: colors.primary }]}>Need Help? Contact Support</Text>
-        </Pressable>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -224,15 +145,7 @@ export default function OrderTrackingScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-  },
-  backBtn: { padding: 2 },
+  header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
   title: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   scroll: { padding: 16, gap: 14 },
   card: { padding: 16, borderWidth: 1, gap: 14 },
@@ -244,18 +157,11 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontFamily: 'Inter_700Bold' },
   timelineItem: { flexDirection: 'row', gap: 14 },
   lineCol: { alignItems: 'center', width: 20 },
-  dot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  dot: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   connector: { width: 2, flex: 1, marginTop: 4 },
   timelineContent: { flex: 1 },
   timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepLabel: { fontSize: 14, fontFamily: 'Inter_500Medium', flex: 1 },
+  stepLabel: { fontSize: 14, flex: 1 },
   activeBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
   activeBadgeText: { fontSize: 10, fontFamily: 'Inter_600SemiBold' },
   stepDate: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 3, marginLeft: 24 },
@@ -269,13 +175,6 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 15, fontFamily: 'Inter_700Bold' },
   totalValue: { fontSize: 18, fontFamily: 'Inter_700Bold' },
-  supportBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    padding: 14,
-    borderWidth: 1,
-  },
+  supportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 14, borderWidth: 1 },
   supportText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
 });

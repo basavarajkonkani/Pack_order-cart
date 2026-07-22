@@ -1,6 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 
 interface Props {
@@ -21,25 +20,17 @@ export function PrimaryButton({ label, onPress, loading, disabled, variant = 'pr
       ? colors.secondary
       : colors.primary;
 
-  const fg =
-    variant === 'secondary' ? colors.primary : '#FFFFFF';
-
-  const handlePress = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    onPress();
-  };
+  const fg = variant === 'secondary' ? colors.primary : '#FFFFFF';
 
   return (
-    <Pressable
-      onPress={handlePress}
+    <TouchableOpacity
+      onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [
+      activeOpacity={0.82}
+      style={[
         styles.btn,
         { backgroundColor: bg, borderRadius: colors.radius },
-        (disabled || loading) && { opacity: 0.5 },
-        pressed && { opacity: 0.85 },
+        (disabled || loading) && styles.disabled,
       ]}
     >
       {loading ? (
@@ -47,7 +38,7 @@ export function PrimaryButton({ label, onPress, loading, disabled, variant = 'pr
       ) : (
         <Text style={[styles.text, { color: fg }]}>{label}</Text>
       )}
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -58,6 +49,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
+  disabled: { opacity: 0.45 },
   text: {
     fontSize: 16,
     fontFamily: 'Inter_600SemiBold',

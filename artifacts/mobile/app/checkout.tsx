@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useColors } from '@/hooks/useColors';
@@ -55,22 +55,30 @@ export default function CheckoutScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.6 }]}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => router.back()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Feather name="arrow-left" size={22} color={colors.foreground} />
-        </Pressable>
+        </TouchableOpacity>
         <Text style={[styles.title, { color: colors.foreground }]}>Checkout</Text>
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Delivery Address */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
           <View style={styles.sectionHeader}>
             <Feather name="map-pin" size={16} color={colors.primary} />
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Delivery Address</Text>
-            <Pressable style={({ pressed }) => [styles.changeBtn, { backgroundColor: colors.secondary, borderRadius: 6, opacity: pressed ? 0.7 : 1 }]}>
+            <TouchableOpacity activeOpacity={0.7} style={[styles.changeBtn, { backgroundColor: colors.secondary, borderRadius: 6 }]}>
               <Text style={[styles.changeBtnText, { color: colors.primary }]}>Change</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
           <TextInput
             style={[styles.addressInput, { color: colors.foreground, borderColor: colors.border }]}
@@ -80,6 +88,7 @@ export default function CheckoutScreen() {
             numberOfLines={3}
             placeholder="Enter delivery address"
             placeholderTextColor={colors.mutedForeground}
+            textAlignVertical="top"
           />
         </View>
 
@@ -88,9 +97,6 @@ export default function CheckoutScreen() {
           <View style={styles.sectionHeader}>
             <Feather name="file-text" size={16} color={colors.primary} />
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>GST Details</Text>
-            <Pressable style={({ pressed }) => [styles.changeBtn, { backgroundColor: colors.secondary, borderRadius: 6, opacity: pressed ? 0.7 : 1 }]}>
-              <Text style={[styles.changeBtnText, { color: colors.primary }]}>Change</Text>
-            </Pressable>
           </View>
           <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>GST Number</Text>
           <TextInput
@@ -112,15 +118,15 @@ export default function CheckoutScreen() {
           {PAYMENT_OPTIONS.map((opt) => {
             const active = payment === opt.value;
             return (
-              <Pressable
+              <TouchableOpacity
                 key={opt.value}
-                style={({ pressed }) => [
+                activeOpacity={0.82}
+                style={[
                   styles.paymentOption,
                   {
-                    backgroundColor: active ? colors.primary + '10' : 'transparent',
+                    backgroundColor: active ? colors.primary + '0D' : 'transparent',
                     borderColor: active ? colors.primary : colors.border,
                     borderRadius: 10,
-                    opacity: pressed ? 0.8 : 1,
                   },
                 ]}
                 onPress={() => {
@@ -138,7 +144,7 @@ export default function CheckoutScreen() {
                 <View style={[styles.radio, { borderColor: active ? colors.primary : colors.border, backgroundColor: active ? colors.primary : 'transparent' }]}>
                   {active && <Feather name="check" size={11} color="#fff" />}
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -157,7 +163,7 @@ export default function CheckoutScreen() {
             <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>GST</Text>
             <Text style={[styles.summaryValue, { color: colors.mutedForeground }]}>As applicable</Text>
           </View>
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View style={[styles.hdivider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryRow}>
             <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total Amount</Text>
             <Text style={[styles.totalValue, { color: colors.primary }]}>₹{cartTotal.toLocaleString('en-IN')}</Text>
@@ -180,14 +186,7 @@ export default function CheckoutScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-  },
-  backBtn: { width: 36, alignItems: 'flex-start' },
+  header: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingBottom: 14, borderBottomWidth: 1 },
   title: { flex: 1, fontSize: 18, fontFamily: 'Inter_700Bold', textAlign: 'center' },
   scroll: { padding: 16, gap: 14, paddingBottom: 20 },
   section: { padding: 16, borderWidth: 1, gap: 12 },
@@ -195,23 +194,9 @@ const styles = StyleSheet.create({
   sectionTitle: { flex: 1, fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   changeBtn: { paddingHorizontal: 10, paddingVertical: 5 },
   changeBtnText: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
-  addressInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    minHeight: 72,
-    textAlignVertical: 'top',
-  },
+  addressInput: { borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 13, fontFamily: 'Inter_400Regular', minHeight: 72 },
   inputLabel: { fontSize: 12, fontFamily: 'Inter_500Medium' },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 13,
-    fontFamily: 'Inter_500Medium',
-  },
+  input: { borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 13, fontFamily: 'Inter_500Medium' },
   paymentOption: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderWidth: 1.5, marginBottom: 8 },
   paymentIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   paymentText: { flex: 1 },
@@ -221,7 +206,7 @@ const styles = StyleSheet.create({
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   summaryLabel: { fontSize: 13, fontFamily: 'Inter_400Regular' },
   summaryValue: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
-  divider: { height: 1 },
+  hdivider: { height: 1 },
   totalLabel: { fontSize: 15, fontFamily: 'Inter_700Bold' },
   totalValue: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   footer: { padding: 16, borderTopWidth: 1 },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -14,8 +14,7 @@ export default function PriceSummaryScreen() {
   const { config, addToCart, resetConfig } = useCart();
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  const isComplete =
-    config.pouchType && config.windowOption && config.materialType && config.capacity && config.quantity;
+  const isComplete = config.pouchType && config.windowOption && config.materialType && config.capacity && config.quantity;
 
   const price = isComplete
     ? calculatePrice({
@@ -55,7 +54,7 @@ export default function PriceSummaryScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Your Product Selection */}
+        {/* Configuration Summary */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Your Product Selection</Text>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -84,7 +83,7 @@ export default function PriceSummaryScreen() {
             <Text style={[styles.totalLabel, { color: colors.foreground }]}>Estimated Price</Text>
             <Text style={[styles.totalValue, { color: colors.primary }]}>₹{price.toLocaleString('en-IN')}</Text>
           </View>
-          <Text style={[styles.gstNote, { color: colors.mutedForeground }]}>GST extra as applicable</Text>
+          <Text style={[styles.gstNote, { color: colors.mutedForeground }]}>* GST extra as applicable</Text>
         </View>
 
         {/* Delivery Info */}
@@ -105,16 +104,14 @@ export default function PriceSummaryScreen() {
         </View>
 
         {/* Edit Config */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.editBtn,
-            { borderColor: colors.border, borderRadius: colors.radius, opacity: pressed ? 0.7 : 1 },
-          ]}
+        <TouchableOpacity
+          activeOpacity={0.78}
+          style={[styles.editBtn, { borderColor: colors.border, borderRadius: colors.radius }]}
           onPress={() => router.push('/configure/pouch-type')}
         >
           <Feather name="edit-2" size={16} color={colors.primary} />
           <Text style={[styles.editText, { color: colors.primary }]}>Edit Configuration</Text>
-        </Pressable>
+        </TouchableOpacity>
       </ScrollView>
 
       <View style={[styles.footer, { borderTopColor: colors.border, paddingBottom: bottomPad + 16 }]}>
@@ -126,7 +123,7 @@ export default function PriceSummaryScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: 16, gap: 14 },
+  scroll: { padding: 16, gap: 14, paddingBottom: 20 },
   card: { padding: 16, borderWidth: 1, gap: 12 },
   cardTitle: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   divider: { height: 1 },
@@ -141,14 +138,7 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   infoValue: { fontSize: 14, fontFamily: 'Inter_700Bold' },
   infoDiv: { width: 1 },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    borderWidth: 1,
-  },
+  editBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, borderWidth: 1 },
   editText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   footer: { padding: 20, borderTopWidth: 1 },
 });

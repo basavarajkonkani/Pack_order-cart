@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -39,23 +39,21 @@ export default function CapacityScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StepIndicator currentStep={4} totalSteps={5} label="Capacity / Size" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <Text style={[styles.question, { color: colors.foreground }]}>
-          Choose the capacity / size
-        </Text>
+        <Text style={[styles.question, { color: colors.foreground }]}>Choose the capacity / size</Text>
 
         <View style={styles.grid}>
           {CAPS.map((cap) => {
             const active = selected === cap.value;
             return (
-              <Pressable
+              <TouchableOpacity
                 key={cap.value}
-                style={({ pressed }) => [
+                activeOpacity={0.8}
+                style={[
                   styles.capCard,
                   {
                     backgroundColor: active ? colors.primary : colors.card,
                     borderColor: active ? colors.primary : colors.border,
                     borderRadius: colors.radius,
-                    opacity: pressed ? 0.85 : 1,
                   },
                 ]}
                 onPress={() => handleSelect(cap.value)}
@@ -71,7 +69,7 @@ export default function CapacityScreen() {
                 <Text style={[styles.capSize, { color: active ? 'rgba(255,255,255,0.75)' : colors.mutedForeground }]}>
                   {getCapacitySize(cap.value)}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -97,37 +95,19 @@ export default function CapacityScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  scroll: { padding: 20, gap: 16 },
+  scroll: { padding: 20, gap: 16, paddingBottom: 20 },
   question: { fontSize: 17, fontFamily: 'Inter_600SemiBold', marginBottom: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   capCard: {
-    width: '30%',
-    minWidth: 90,
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    gap: 4,
-    position: 'relative',
-    overflow: 'hidden',
+    width: '30%', minWidth: 90, aspectRatio: 1,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, gap: 4, position: 'relative', overflow: 'hidden',
   },
-  popularBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderBottomLeftRadius: 6,
-  },
+  popularBadge: { position: 'absolute', top: 0, right: 0, paddingHorizontal: 6, paddingVertical: 3, borderBottomLeftRadius: 6 },
   popularText: { fontSize: 8, fontFamily: 'Inter_700Bold', color: '#fff' },
   capLabel: { fontSize: 20, fontFamily: 'Inter_700Bold' },
   capSize: { fontSize: 10, fontFamily: 'Inter_400Regular', textAlign: 'center', paddingHorizontal: 4 },
-  selectedInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-  },
+  selectedInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   infoTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   infoSub: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
   footer: { padding: 20, borderTopWidth: 1 },

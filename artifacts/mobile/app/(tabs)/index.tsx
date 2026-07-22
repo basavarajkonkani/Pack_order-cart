@@ -2,10 +2,10 @@ import React from 'react';
 import {
   Image,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useColors } from '@/hooks/useColors';
@@ -20,36 +20,30 @@ const CATEGORIES: { type: PouchType; label: string; desc: string; icon: string }
   { type: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium', icon: 'layers' },
 ];
 
+const FEATURES = [
+  { icon: 'shield', text: 'Quality Assured', sub: 'ISO certified materials' },
+  { icon: 'truck', text: 'Fast Delivery', sub: '12-15 business days' },
+  { icon: 'edit-2', text: 'Custom Print', sub: 'Full colour printing' },
+];
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { cart } = useCart();
-
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
-
-  const handleCategory = (type: PouchType) => {
-    router.push({ pathname: '/configure/pouch-type', params: { preset: type } });
-  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.primary,
-            paddingTop: topPad + 12,
-          },
-        ]}
-      >
+      <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: topPad + 12 }]}>
         <View>
           <Text style={styles.greeting}>Hello, Customer</Text>
           <Text style={styles.subGreeting}>Good to see you again!</Text>
         </View>
-        <Pressable
-          onPress={() => router.push('/configure/pouch-type')}
-          style={({ pressed }) => [styles.cartBtn, pressed && { opacity: 0.7 }]}
+        <TouchableOpacity
+          activeOpacity={0.75}
+          onPress={() => router.push('/(tabs)/orders')}
+          style={styles.cartBtn}
         >
           <Ionicons name="notifications-outline" size={24} color="#fff" />
           {cart.length > 0 && (
@@ -57,31 +51,31 @@ export default function HomeScreen() {
               <Text style={styles.badgeText}>{cart.length}</Text>
             </View>
           )}
-        </Pressable>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: Platform.OS === 'web' ? 100 : 90 + insets.bottom },
-        ]}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Search Bar */}
-        <Pressable
+        <TouchableOpacity
+          activeOpacity={0.8}
           style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}
-          onPress={() => router.push('/configure/pouch-type')}
+          onPress={() => router.push('/(tabs)/products')}
         >
           <Feather name="search" size={18} color={colors.mutedForeground} />
           <Text style={[styles.searchPlaceholder, { color: colors.mutedForeground }]}>
             Search for pouches, sizes...
           </Text>
-        </Pressable>
+        </TouchableOpacity>
 
         {/* Hero Banner */}
-        <Pressable
+        <TouchableOpacity
+          activeOpacity={0.92}
           style={[styles.heroBanner, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/configure/pouch-type')}
+          onPress={() => router.push('/(tabs)/products')}
         >
           <View style={styles.heroContent}>
             <Text style={styles.heroTag}>PREMIUM PACKAGING</Text>
@@ -98,39 +92,38 @@ export default function HomeScreen() {
               resizeMode="cover"
             />
           </View>
-        </Pressable>
+        </TouchableOpacity>
 
         {/* Shop by Category */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Shop by Category</Text>
           <View style={styles.categories}>
             {CATEGORIES.map((cat) => (
-              <Pressable
+              <TouchableOpacity
                 key={cat.type}
-                style={({ pressed }) => [
+                activeOpacity={0.78}
+                style={[
                   styles.categoryCard,
                   {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
                     borderRadius: colors.radius,
-                    opacity: pressed ? 0.8 : 1,
                   },
                 ]}
-                onPress={() => handleCategory(cat.type)}
+                onPress={() =>
+                  router.push({ pathname: '/configure/pouch-type', params: { preset: cat.type } })
+                }
               >
                 <View style={[styles.categoryIcon, { backgroundColor: colors.secondary }]}>
                   <Feather name={cat.icon as any} size={22} color={colors.primary} />
                 </View>
-                <Text
-                  style={[styles.categoryLabel, { color: colors.foreground }]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.categoryLabel, { color: colors.foreground }]} numberOfLines={1}>
                   {cat.label.split(' ')[0]}
                 </Text>
                 <Text style={[styles.categoryDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
                   {cat.desc}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -139,11 +132,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Why Choose Us</Text>
           <View style={styles.features}>
-            {[
-              { icon: 'shield', text: 'Quality Assured', sub: 'ISO certified materials' },
-              { icon: 'truck', text: 'Fast Delivery', sub: '12-15 business days' },
-              { icon: 'edit-2', text: 'Custom Print', sub: 'Full colour printing' },
-            ].map((f) => (
+            {FEATURES.map((f) => (
               <View
                 key={f.text}
                 style={[
@@ -162,21 +151,19 @@ export default function HomeScreen() {
         </View>
 
         {/* Quick Order CTA */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.ctaCard,
-            { backgroundColor: colors.primary, borderRadius: colors.radius, opacity: pressed ? 0.9 : 1 },
-          ]}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={[styles.ctaCard, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
           onPress={() => router.push('/configure/pouch-type')}
         >
           <View>
             <Text style={styles.ctaTitle}>Start a New Order</Text>
-            <Text style={styles.ctaSub}>Customise pouches in 6 easy steps</Text>
+            <Text style={styles.ctaSub}>Customise pouches in 5 easy steps</Text>
           </View>
           <View style={[styles.ctaArrow, { backgroundColor: colors.accent }]}>
             <Feather name="arrow-right" size={20} color="#fff" />
           </View>
-        </Pressable>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -191,159 +178,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 18,
   },
-  greeting: {
-    fontSize: 22,
-    fontFamily: 'Inter_700Bold',
-    color: '#fff',
-  },
-  subGreeting: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 2,
-  },
+  greeting: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
+  subGreeting: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   cartBtn: { position: 'relative', padding: 4 },
   badge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute', top: 0, right: 0,
+    width: 16, height: 16, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
   },
   badgeText: { color: '#fff', fontSize: 9, fontFamily: 'Inter_700Bold' },
-  scroll: { paddingHorizontal: 16, paddingTop: 12, gap: 20 },
+  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 20, gap: 20 },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 10,
-    borderWidth: 1,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 10, borderWidth: 1,
   },
   searchPlaceholder: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  heroBanner: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    height: 160,
-  },
-  heroContent: {
-    flex: 1,
-    padding: 18,
-    justifyContent: 'center',
-    gap: 4,
-  },
-  heroTag: {
-    fontSize: 10,
-    fontFamily: 'Inter_700Bold',
-    color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 1,
-  },
-  heroTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter_700Bold',
-    color: '#fff',
-  },
-  heroSub: {
-    fontSize: 11,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.75)',
-  },
-  exploreBtn: {
-    marginTop: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-  },
-  exploreBtnText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-  },
+  heroBanner: { borderRadius: 16, overflow: 'hidden', flexDirection: 'row', height: 160 },
+  heroContent: { flex: 1, padding: 18, justifyContent: 'center', gap: 4 },
+  heroTag: { fontSize: 10, fontFamily: 'Inter_700Bold', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
+  heroTitle: { fontSize: 20, fontFamily: 'Inter_700Bold', color: '#fff' },
+  heroSub: { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)' },
+  exploreBtn: { marginTop: 8, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 6, alignSelf: 'flex-start' },
+  exploreBtnText: { color: '#fff', fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   heroImageContainer: { width: 130, overflow: 'hidden' },
   heroImage: { width: 130, height: '100%' },
   section: { gap: 12 },
-  sectionTitle: {
-    fontSize: 17,
-    fontFamily: 'Inter_700Bold',
-  },
+  sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold' },
   categories: { flexDirection: 'row', gap: 10 },
-  categoryCard: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 14,
-    borderWidth: 1,
-    gap: 6,
-  },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  categoryLabel: {
-    fontSize: 12,
-    fontFamily: 'Inter_600SemiBold',
-    textAlign: 'center',
-  },
-  categoryDesc: {
-    fontSize: 10,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-  },
+  categoryCard: { flex: 1, alignItems: 'center', padding: 14, borderWidth: 1, gap: 6 },
+  categoryIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  categoryLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  categoryDesc: { fontSize: 10, fontFamily: 'Inter_400Regular', textAlign: 'center' },
   features: { flexDirection: 'row', gap: 10 },
-  featureCard: {
-    flex: 1,
-    padding: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: 6,
-  },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureText: {
-    fontSize: 11,
-    fontFamily: 'Inter_600SemiBold',
-    textAlign: 'center',
-  },
-  featureSub: {
-    fontSize: 9,
-    fontFamily: 'Inter_400Regular',
-    textAlign: 'center',
-  },
-  ctaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  ctaTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter_700Bold',
-    color: '#fff',
-  },
-  ctaSub: {
-    fontSize: 12,
-    fontFamily: 'Inter_400Regular',
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 2,
-  },
-  ctaArrow: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  featureCard: { flex: 1, padding: 14, borderWidth: 1, alignItems: 'center', gap: 6 },
+  featureIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  featureText: { fontSize: 11, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  featureSub: { fontSize: 9, fontFamily: 'Inter_400Regular', textAlign: 'center' },
+  ctaCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
+  ctaTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
+  ctaSub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  ctaArrow: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

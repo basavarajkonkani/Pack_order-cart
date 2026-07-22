@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = useCallback((item: Omit<CartItem, 'id'>) => {
     const newItem: CartItem = {
       ...item,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
     };
     persistCart([...cart, newItem]);
   }, [cart, persistCart]);
@@ -106,7 +106,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const placeOrder = useCallback((address: string, gstNumber: string, paymentMethod: string): Order => {
     const order: Order = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       orderId: 'PCH' + Math.floor(1000 + Math.random() * 9000),
       items: [...cart],
       total: cartTotal,
