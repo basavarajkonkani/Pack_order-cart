@@ -31,9 +31,16 @@ export interface UserProfile {
   role: 'customer' | 'admin';
 }
 
+/** Formats the "city, state – pincode" line, omitting separators for missing fields. */
+export function formatAddressLine2(addr: Address): string {
+  const cityState = [addr.city, addr.state].filter(Boolean).join(', ');
+  return [cityState, addr.pincode].filter(Boolean).join(' – ');
+}
+
 /** Formats a saved address into the multi-line string used for delivery/order records. */
 export function formatAddress(addr: Address): string {
-  return `${addr.line1}\n${addr.city}, ${addr.state} – ${addr.pincode}`;
+  const secondLine = formatAddressLine2(addr);
+  return secondLine ? `${addr.line1}\n${secondLine}` : addr.line1;
 }
 
 interface AuthContextType {

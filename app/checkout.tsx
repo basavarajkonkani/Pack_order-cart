@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
-import { useAuth, formatAddress } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
 
@@ -47,12 +47,8 @@ export default function CheckoutScreen() {
     }
   }, [phone]);
 
-  // Prefill from the buyer's saved default address and GST details once the
-  // profile loads from Firestore, instead of hardcoded placeholder values.
-  useEffect(() => {
-    if (defaultAddress) setAddress(formatAddress(defaultAddress));
-  }, [defaultAddress]);
-
+  // Delivery address starts blank so the buyer always enters/confirms it
+  // themselves; only GST details are prefilled from their saved profile.
   useEffect(() => {
     if (profile?.gstNumber) setGstNumber(profile.gstNumber);
   }, [profile?.gstNumber]);

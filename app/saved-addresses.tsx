@@ -15,7 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { useAuth, Address } from '@/context/AuthContext';
+import { useAuth, Address, formatAddressLine2 } from '@/context/AuthContext';
 
 export default function SavedAddressesScreen() {
   const colors = useColors();
@@ -108,7 +108,7 @@ export default function SavedAddressesScreen() {
               </TouchableOpacity>
             </View>
             <Text style={[styles.addrLine, { color: colors.foreground }]}>{addr.line1}</Text>
-            <Text style={[styles.addrLine, { color: colors.mutedForeground }]}>{addr.city}, {addr.state} – {addr.pincode}</Text>
+            <Text style={[styles.addrLine, { color: colors.mutedForeground }]}>{formatAddressLine2(addr)}</Text>
             {!addr.isDefault && (
               <TouchableOpacity activeOpacity={0.78} style={[styles.setDefaultBtn, { borderColor: colors.border, borderRadius: 8 }]} onPress={() => setDefault(addr.id)}>
                 <Text style={[styles.setDefaultText, { color: colors.primary }]}>Set as Default</Text>
