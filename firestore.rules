@@ -3,11 +3,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // True only for signed-in users whose own profile doc has role == 'admin'.
+    // Used to grant the Admin Portal read/write access across collections
+    // while customers keep the owner-only rules below.
+    function isAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // users/{uid} — customer profile, including addresses[] and wishlist[]
-    // fields used by AuthContext. Only the owning user can read/write their
-    // own profile document.
+    // fields used by AuthContext. The owning user can read/write their own
+    // profile, but cannot change their own `role` (prevents self-promotion
+    // to admin) — only an existing admin can grant/revoke the admin role.
+    // Admins can read/write any profile (Customer Management module).
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.role == 'customer';
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role;
+      allow read, write: if isAdmin();
     }
 
     // carts/{uid} — the buyer's cart, synced cross-device by CartContext.
@@ -17,20 +32,54 @@ service cloud.firestore {
     }
 
     // orders/{orderId} — order docs carry a userId field (not used as the
-    // doc id), so ownership is checked against that field instead.
+    // doc id), so ownership is checked against that field instead. Admins
+    // can read/update all orders (Order Management module) but not delete.
     match /orders/{orderId} {
       allow read, update, delete: if request.auth != null
         && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null
         && request.auth.uid == request.resource.data.userId;
+      allow read, update: if isAdmin();
     }
 
     // products/{productId} — public catalog, readable by anyone (including
-    // signed-out users), writable only via the trusted seed script using the
-    // Firebase Admin SDK (which bypasses these rules) — no client writes.
+    // signed-out users). Writable only by admins (Product Management module).
     match /products/{productId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
+    }
+
+    // categories/{categoryId} — public catalog metadata, readable by anyone,
+    // writable only by admins (Category Management module).
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // packagingRequests/{requestId} — Design Assistance / Custom Packaging
+    // requests submitted by buyers. Buyers can create + read their own;
+    // admins can read/update all (Custom Packaging module).
+    match /packagingRequests/{requestId} {
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.userId;
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+      allow read, update: if isAdmin();
+    }
+
+    // notifications/{notificationId} — admin-authored notifications/promos.
+    // Any signed-in user can read (to display in-app), only admins can write.
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // settings/{docId} — singleton store settings (company/tax/shipping/
+    // payment). Publicly readable (Buyer App may need tax/shipping rates),
+    // writable only by admins (Settings module).
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
