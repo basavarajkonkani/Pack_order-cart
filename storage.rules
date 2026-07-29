@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // True only for signed-in admins. Mirrors the isAdmin() helper in
+    // firestore.rules so the Admin Portal can manage catalog media and read
+    // buyer artwork while buyers stay scoped to their own folder.
+    //
+    // Prefers the `admin` custom claim (free to evaluate) and falls back to the
+    // users/{uid}.role lookup, which costs one billed Firestore read per rule
+    // evaluation. Remove the fallback once every admin account has the claim.
+    // token.get('admin', false) rather than token.admin: reading a claim that
+    // isn't present raises "Property admin is undefined on object", and that
+    // error denies the entire request rather than just this condition.
+    function hasAdminClaim() {
+      return request.auth != null && request.auth.token.get('admin', false) == true;
+    }
+
+    // exists() is checked first on purpose: get() on a missing document returns
+    // null, and reading .data off null raises an evaluation error rather than
+    // returning false.
+    function hasAdminRoleDoc() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
+    }
+
+    function isAdmin() {
+      return hasAdminClaim() || hasAdminRoleDoc();
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
+    // artwork/{uid}/... — design / reference files a buyer attaches to a
+    // printed-pouch order. Owner can upload and read their own files;
+    // admins can read every buyer's artwork to send it to production.
+    // Uploads are capped at 50 MB to match the client-side limit.
+    match /artwork/{uid}/{fileName} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 50 * 1024 * 1024;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // products/images/... — catalog product photos uploaded from the Admin
+    // Portal (uploadFileSafe in admin-portal/src/lib/storage.ts). Publicly
+    // readable because the buyer catalog is public and renders these by
+    // download URL; writable by admins only, images only, capped at 10 MB.
+    // `create, update` is split from `delete` on purpose: on a delete there is
+    // no incoming object, so request.resource is null and any size or
+    // contentType check would reject deleteFileByUrl().
+    match /products/images/{fileName=**} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 10 * 1024 * 1024
+        && isImage();
+      allow delete: if isAdmin();
+    }
+
+    // products/videos/... — optional product demo videos from the Admin
+    // Portal. Same access model as product images, with a larger cap.
+    match /products/videos/{fileName=**} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 100 * 1024 * 1024
+        && isVideo();
+      allow delete: if isAdmin();
+    }
+
+    // categories/images/... — category thumbnails uploaded from the Admin
+    // Portal (CategoryFormDialog). Public catalog metadata, admin-writable.
+    match /categories/images/{fileName=**} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.size < 10 * 1024 * 1024
+        && isImage();
+      allow delete: if isAdmin();
+    }
+
+    // Everything else is closed by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

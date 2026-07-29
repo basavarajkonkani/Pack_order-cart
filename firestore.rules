@@ -3,26 +3,68 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // True only for signed-in users whose own profile doc has role == 'admin'.
-    // Used to grant the Admin Portal read/write access across collections
-    // while customers keep the owner-only rules below.
-    function isAdmin() {
+    // True only for signed-in admins. Used to grant the Admin Portal
+    // read/write access across collections while customers keep the
+    // owner-only rules below.
+    //
+    // Prefers the `admin` custom claim on the auth token, which costs nothing
+    // to evaluate. Falls back to the users/{uid}.role lookup so existing
+    // admins keep working until every account has the claim set via
+    // `node scripts/set-admin-claim.js <email>`. The fallback costs one extra
+    // billed document read per rule evaluation, so remove it once all admin
+    // accounts are migrated.
+    // token.get('admin', false) rather than token.admin: reading a claim that
+    // isn't present raises "Property admin is undefined on object", and that
+    // error denies the entire request, not just this condition. Every buyer
+    // without the claim would otherwise be locked out of their own data.
+    function hasAdminClaim() {
+      return request.auth != null && request.auth.token.get('admin', false) == true;
+    }
+
+    // exists() is checked first on purpose: get() on a missing document returns
+    // null, and reading .data off null raises an evaluation error rather than
+    // returning false.
+    function hasAdminRoleDoc() {
       return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin';
+    }
+
+    function isAdmin() {
+      return hasAdminClaim() || hasAdminRoleDoc();
     }
 
     // users/{uid} — customer profile, including addresses[] and wishlist[]
     // fields used by AuthContext. The owning user can read/write their own
     // profile, but cannot change their own `role` (prevents self-promotion
     // to admin) — only an existing admin can grant/revoke the admin role.
-    // Admins can read/write any profile (Customer Management module).
+    // Admins can read/write any profile (Customer Management module), except
+    // that nobody — admin included — may change the `role` on their *own*
+    // profile. Without that carve-out an admin's ordinary profile write (e.g.
+    // setDoc merge from AuthContext) could silently demote them, locking the
+    // last admin out of the portal.
+    //
+    // .get('role', '') on both sides rather than .role: legacy docs may have no
+    // role field, and reading a missing property raises an evaluation error
+    // that denies the whole request instead of just failing this condition.
+    function selfRoleUnchanged(uid) {
+      return uid != request.auth.uid
+        || request.resource.data.get('role', '') == resource.data.get('role', '');
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow create: if request.auth != null && request.auth.uid == uid
         && request.resource.data.role == 'customer';
       allow update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.role == resource.data.role;
-      allow read, write: if isAdmin();
+
+      allow read: if isAdmin();
+      // create/delete keep the previous admin behaviour untouched: on create
+      // there is no prior role to preserve, and on delete request.resource is
+      // null, so the role comparison cannot be evaluated at all.
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() && selfRoleUnchanged(uid);
     }
 
     // carts/{uid} — the buyer's cart, synced cross-device by CartContext.
@@ -32,13 +74,25 @@ service cloud.firestore {
     }
 
     // orders/{orderId} — order docs carry a userId field (not used as the
-    // doc id), so ownership is checked against that field instead. Admins
-    // can read/update all orders (Order Management module) but not delete.
+    // doc id), so ownership is checked against that field instead.
+    //
+    // Buyers may create their own order and read it back, but may NOT update
+    // or delete it. Order records are financial history: allowing buyer writes
+    // would let a customer rewrite `total` or push their own order straight to
+    // `delivered` from the client SDK. Status transitions belong to admins.
+    // Nobody can delete, so the audit trail is preserved.
     match /orders/{orderId} {
-      allow read, update, delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+        && request.auth.uid == request.resource.data.userId
+        // A new order always starts at 'confirmed' (see placeOrder in
+        // context/CartContext.tsx) — buyers can't self-advance the status.
+        && request.resource.data.status == 'confirmed'
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.items is list;
+      allow read: if request.auth != null
+        && request.auth.uid == resource.data.userId;
+
       allow read, update: if isAdmin();
     }
 
