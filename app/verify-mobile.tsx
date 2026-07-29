@@ -14,10 +14,9 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { useAuth } from '@/context/AuthContext';
+import { phoneAuthErrorMessage } from '@/lib/phoneAuth';
 import * as Haptics from 'expo-haptics';
 
-// Demo-only OTP — in production this would be generated & verified server-side.
-const DEMO_OTP = '123456';
 const RESEND_SECONDS = 30;
 const OTP_LENGTH = 6;
 
@@ -30,7 +29,7 @@ const noWebOutline = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) :
 export default function VerifyMobileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { updateProfile } = useAuth();
+  const { sendPhoneOtp, verifyPhoneOtp, phoneAuthAvailable } = useAuth();
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -40,9 +39,11 @@ export default function VerifyMobileScreen() {
   const [otp, setOtp] = useState('');
   const [otpFocused, setOtpFocused] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [verificationId, setVerificationId] = useState('');
   const otpInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -64,51 +65,84 @@ export default function VerifyMobileScreen() {
     setError('');
   };
 
-  const handleSendOtp = () => {
+  const requestOtp = async (): Promise<boolean> => {
+    setSending(true);
+    setError('');
+    setNotice('');
+    try {
+      const id = await sendPhoneOtp(phone);
+      setVerificationId(id);
+      setResendTimer(RESEND_SECONDS);
+      setOtp('');
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      return true;
+    } catch (err) {
+      setError(phoneAuthErrorMessage(err));
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      return false;
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
     if (!isPhoneValid) {
       setError('Enter a valid 10-digit mobile number');
       return;
     }
-    setSending(true);
-    setError('');
-    if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setTimeout(() => {
-      setSending(false);
-      setStep('otp');
-      setResendTimer(RESEND_SECONDS);
-      setOtp('');
-    }, 600);
+    if (!phoneAuthAvailable) {
+      setError('Phone verification is only available on the web version of this app.');
+      return;
+    }
+    if (await requestOtp()) setStep('otp');
   };
 
-  const handleResend = () => {
-    if (resendTimer > 0) return;
+  const handleResend = async () => {
+    if (resendTimer > 0 || sending) return;
     if (Platform.OS !== 'web') Haptics.selectionAsync();
-    setResendTimer(RESEND_SECONDS);
-    setOtp('');
-    setError('');
-    otpInputRef.current?.focus();
+    if (await requestOtp()) otpInputRef.current?.focus();
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (!isOtpValid) {
       setError('Enter the 6-digit OTP');
       return;
     }
     setVerifying(true);
     setError('');
-    setTimeout(async () => {
-      setVerifying(false);
-      if (otp !== DEMO_OTP) {
-        setError('Incorrect OTP. Please try again.');
-        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
+    setNotice('');
+    try {
+      // Firebase verifies the code server-side and, where possible, links the
+      // number onto the existing guest account so the cart and past orders
+      // survive the upgrade.
+      const { preservedGuestData } = await verifyPhoneOtp(verificationId, otp, phone);
+
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Save the verified phone number to this device's Firebase profile
-      // so it's tied to a real user id instead of just a route param.
-      await updateProfile({ phone });
+
+      if (!preservedGuestData) {
+        // The number already had an account, so we signed into it instead.
+        // Firebase cannot merge accounts, so the guest cart is gone — say so
+        // rather than letting the buyer discover an empty cart at checkout.
+        setNotice(
+          'Welcome back. We signed you in to your existing account, so items added as a guest are not carried over.'
+        );
+      }
+
       router.replace({ pathname: '/checkout', params: { phone } });
-    }, 500);
+    } catch (err) {
+      setError(phoneAuthErrorMessage(err));
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleBack = () => {
@@ -271,11 +305,16 @@ export default function VerifyMobileScreen() {
                 <Feather name="alert-circle" size={13} color={colors.destructive} />
                 <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
               </View>
+            ) : notice ? (
+              <View style={[styles.infoBox, { backgroundColor: colors.secondary, borderRadius: 10 }]}>
+                <Feather name="info" size={14} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.mutedForeground }]}>{notice}</Text>
+              </View>
             ) : (
               <View style={[styles.infoBox, { backgroundColor: colors.secondary, borderRadius: 10 }]}>
                 <Feather name="info" size={14} color={colors.primary} />
                 <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-                  Demo OTP: {DEMO_OTP}
+                  The OTP arrives by SMS and is valid for a few minutes
                 </Text>
               </View>
             )}

@@ -4,26 +4,36 @@ import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, PouchType } from '@/context/CartContext';
+import { useCart, PouchType, getTotalSteps } from '@/context/CartContext';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
 
+/**
+ * Plain pouches aren't configurable here — they're sold from the ready-stock
+ * catalog (Stock Pouches tab), so the wizard only covers printed and kraft.
+ */
 const OPTIONS: { type: PouchType; label: string; desc: string; image: ImageSourcePropType; detail: string }[] = [
-  { type: 'plain', label: 'Plain Pouches', desc: 'No Printing', image: require('@/assets/images/silver-standy-pouch.jpg'), detail: 'Clean, minimal stand-up pouches. Cost-effective for bulk orders.' },
   { type: 'printed', label: 'Printed Pouches', desc: 'Custom Printing', image: require('@/assets/images/gold-standy-pouch.jpg'), detail: 'Full-colour flexographic or digital printing for brand identity.' },
   { type: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium Look', image: require('@/assets/images/kraft-standy-pouch-brown.jpg'), detail: 'Eco-friendly kraft paper with a natural, premium finish.' },
 ];
+
+const isSelectable = (type?: PouchType): type is PouchType =>
+  !!type && OPTIONS.some((o) => o.type === type);
 
 export default function PouchTypeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { preset } = useLocalSearchParams<{ preset?: PouchType }>();
   const { setConfig } = useCart();
-  const [selected, setSelected] = useState<PouchType | null>(preset ?? null);
+  const [selected, setSelected] = useState<PouchType | null>(isSelectable(preset) ? preset : null);
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  useEffect(() => { if (preset) setSelected(preset); }, [preset]);
+  // Older links may still carry preset=plain, which no longer maps to an option.
+  useEffect(() => { if (isSelectable(preset)) setSelected(preset); }, [preset]);
+
+  // Arriving from a home category tile narrows this step to that one type.
+  const visibleOptions = isSelectable(preset) ? OPTIONS.filter((o) => o.type === preset) : OPTIONS;
 
   const handleSelect = (type: PouchType) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -38,12 +48,14 @@ export default function PouchTypeScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <StepIndicator currentStep={1} totalSteps={5} label="Choose Pouch Type" />
+      <StepIndicator currentStep={1} totalSteps={getTotalSteps(selected ?? undefined)} label="Choose Pouch Type" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={[styles.question, { color: colors.foreground }]}>
-          Choose the type of pouch you need
+          {visibleOptions.length === 1
+            ? 'Confirm your pouch type'
+            : 'Choose the type of pouch you need'}
         </Text>
-        {OPTIONS.map((opt) => {
+        {visibleOptions.map((opt) => {
           const active = selected === opt.type;
           return (
             <TouchableOpacity

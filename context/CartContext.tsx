@@ -19,6 +19,10 @@ export interface OrderConfig {
   quantity?: number;
   pouchSize?: string;
   artworkUpload?: boolean;
+  /** Download URL of the buyer's uploaded artwork / reference file. */
+  artworkUrl?: string;
+  artworkName?: string;
+  artworkSize?: number;
 }
 
 export interface CartItem {
@@ -35,6 +39,10 @@ export interface CartItem {
   materialType?: MaterialType;
   capacity?: Capacity;
   pouchSize?: string;
+  /** Artwork / reference file the buyer attached (printed pouches). */
+  artworkUrl?: string;
+  artworkName?: string;
+  artworkSize?: number;
 
   // Ready-stock fields
   productId?: string;
@@ -238,7 +246,23 @@ export function useCart() {
   return ctx;
 }
 
-export function calculatePrice(config: Required<Pick<OrderConfig, 'pouchType' | 'windowOption' | 'materialType' | 'capacity' | 'quantity'>>): number {
+/**
+ * Kraft pouches are paper-based, so the metalised / non-metalised choice
+ * doesn't apply — that wizard step is skipped for them.
+ */
+export function hasMaterialStep(type?: PouchType): boolean {
+  return type !== 'kraft';
+}
+
+/** Total steps in the configure wizard for a pouch type (kraft skips material type). */
+export function getTotalSteps(type?: PouchType): number {
+  return hasMaterialStep(type) ? 5 : 4;
+}
+
+export function calculatePrice(
+  config: Required<Pick<OrderConfig, 'pouchType' | 'windowOption' | 'capacity' | 'quantity'>> &
+    Pick<OrderConfig, 'materialType'>
+): number {
   const basePerPiece: Record<PouchType, number> = { plain: 1.5, printed: 3.0, kraft: 2.0 };
   let price = basePerPiece[config.pouchType];
   if (config.windowOption === 'with') price += 0.5;
@@ -264,8 +288,10 @@ export function getItemSpec(item: CartItem): string {
     return [item.sizeLabel, item.sizeWeight].filter(Boolean).join(' · ');
   }
   const windowText = item.windowOption === 'with' ? 'With Window' : 'No Window';
-  const materialText = item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised';
-  return `${windowText} · ${materialText} · ${item.capacity ?? ''}`.replace(/\s·\s$/, '');
+  const materialText = !hasMaterialStep(item.pouchType) || !item.materialType
+    ? null
+    : item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised';
+  return [windowText, materialText, item.capacity].filter(Boolean).join(' · ');
 }
 
 export function getCapacitySize(cap: Capacity): string {

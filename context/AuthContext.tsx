@@ -6,6 +6,14 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import {
+  confirmOtp,
+  isPhoneAuthAvailable,
+  resetPhoneAuth,
+  sendOtp,
+  toE164,
+  type ConfirmOtpResult,
+} from '@/lib/phoneAuth';
 
 export interface Address {
   id: string;
@@ -48,6 +56,17 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
+  /** True while the buyer is still on an anonymous (guest) session. */
+  isGuest: boolean;
+  /** False on native, where the JS SDK cannot run reCAPTCHA. See lib/phoneAuth.ts. */
+  phoneAuthAvailable: boolean;
+  /** Sends an OTP to a 10-digit number and resolves with the verificationId. */
+  sendPhoneOtp: (tenDigitNumber: string) => Promise<string>;
+  /**
+   * Verifies the OTP, upgrading the guest account in place where possible, and
+   * persists the number on the profile.
+   */
+  verifyPhoneOtp: (verificationId: string, code: string, tenDigitNumber: string) => Promise<ConfirmOtpResult>;
   updateProfile: (updates: Partial<Omit<UserProfile, 'role'>>) => Promise<void>;
   addAddress: (addr: Omit<Address, 'id' | 'isDefault'>) => Promise<void>;
   updateAddress: (id: string, addr: Omit<Address, 'id' | 'isDefault'>) => Promise<void>;
@@ -126,6 +145,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((prev) => (prev ? { ...prev, ...updates } : prev));
   };
 
+  const sendPhoneOtp = async (tenDigitNumber: string) => {
+    return sendOtp(toE164(tenDigitNumber));
+  };
+
+  const verifyPhoneOtp = async (
+    verificationId: string,
+    code: string,
+    tenDigitNumber: string
+  ): Promise<ConfirmOtpResult> => {
+    const result = await confirmOtp(verificationId, code);
+
+    // The challenge is single-use; drop it so a later verification starts fresh.
+    resetPhoneAuth();
+
+    // Write against auth.currentUser rather than the `user` state value: on the
+    // fallback path confirmOtp swapped the account, and the onAuthStateChanged
+    // listener has not re-rendered us yet, so `user` still holds the old UID.
+    const active = auth.currentUser;
+    if (active) {
+      const userRef = doc(db, USERS_COLLECTION, active.uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        // Only the phone number. `role` is deliberately left alone: when a phone
+        // sign-in lands on an account that is already an admin, writing
+        // role: 'customer' would demote it, and firestore.rules permits that
+        // write through the isAdmin() branch rather than blocking it. `createdAt`
+        // is left alone too so the original signup date survives re-verification.
+        await setDoc(userRef, { phone: tenDigitNumber }, { merge: true });
+      } else {
+        await setDoc(userRef, {
+          phone: tenDigitNumber,
+          role: 'customer',
+          createdAt: serverTimestamp(),
+        });
+      }
+    }
+
+    return result;
+  };
+
   const saveAddresses = async (addresses: Address[]) => {
     if (!user) return;
     const userRef = doc(db, USERS_COLLECTION, user.uid);
@@ -179,6 +238,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profile,
         loading,
         isAdmin: profile?.role === 'admin',
+        isGuest: user?.isAnonymous ?? true,
+        phoneAuthAvailable: isPhoneAuthAvailable(),
+        sendPhoneOtp,
+        verifyPhoneOtp,
         updateProfile,
         addAddress,
         updateAddress,

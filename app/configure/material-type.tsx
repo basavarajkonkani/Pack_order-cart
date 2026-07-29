@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, MaterialType } from '@/context/CartContext';
+import { useCart, MaterialType, hasMaterialStep } from '@/context/CartContext';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
@@ -29,9 +29,17 @@ const OPTIONS: { value: MaterialType; label: string; desc: string; icon: string;
 export default function MaterialTypeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { setConfig } = useCart();
+  const { config, setConfig } = useCart();
   const [selected, setSelected] = useState<MaterialType | null>(null);
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
+  const skip = !hasMaterialStep(config.pouchType);
+
+  // Kraft pouches have no metalised option, so this step doesn't apply to them.
+  useEffect(() => {
+    if (skip) router.replace('/configure/capacity');
+  }, [skip]);
+
+  if (skip) return <View style={[styles.root, { backgroundColor: colors.background }]} />;
 
   const handleSelect = (v: MaterialType) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync();

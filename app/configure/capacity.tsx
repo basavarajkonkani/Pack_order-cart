@@ -4,7 +4,7 @@ import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, Capacity, getCapacitySize } from '@/context/CartContext';
+import { useCart, Capacity, getCapacitySize, getTotalSteps, hasMaterialStep } from '@/context/CartContext';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
@@ -20,7 +20,7 @@ const CAPS: { value: Capacity; label: string; popular?: boolean }[] = [
 export default function CapacityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { setConfig } = useCart();
+  const { config, setConfig } = useCart();
   const [selected, setSelected] = useState<Capacity | null>(null);
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
@@ -37,7 +37,11 @@ export default function CapacityScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <StepIndicator currentStep={4} totalSteps={5} label="Capacity / Size" />
+      <StepIndicator
+        currentStep={hasMaterialStep(config.pouchType) ? 4 : 3}
+        totalSteps={getTotalSteps(config.pouchType)}
+        label="Capacity / Size"
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={[styles.question, { color: colors.foreground }]}>Choose the capacity / size</Text>
 

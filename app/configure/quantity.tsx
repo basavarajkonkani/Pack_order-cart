@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, calculatePrice, getMinOrder } from '@/context/CartContext';
+import { useCart, calculatePrice, getMinOrder, getTotalSteps, hasMaterialStep } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { ArtworkError, formatFileSize, pickArtwork, uploadArtwork, UploadedArtwork } from '@/lib/artwork';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
@@ -13,14 +15,49 @@ export default function QuantityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { config, setConfig } = useCart();
+  const { user } = useAuth();
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
   const minOrder = getMinOrder(config.pouchType ?? 'plain');
   const [quantity, setQuantity] = useState(minOrder);
-  const [artworkUpload, setArtworkUpload] = useState(false);
+  const [artwork, setArtwork] = useState<UploadedArtwork | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const step = 1000;
 
+  const handlePickArtwork = async () => {
+    setUploadError(null);
+    if (!user) {
+      setUploadError('Please sign in to upload your artwork.');
+      return;
+    }
+    try {
+      const picked = await pickArtwork();
+      if (!picked) return;
+      if (Platform.OS !== 'web') Haptics.selectionAsync();
+      setUploading(true);
+      setArtwork(await uploadArtwork(picked, user.uid));
+    } catch (err) {
+      console.warn('[artwork] upload failed:', err);
+      setUploadError(
+        err instanceof ArtworkError
+          ? err.message
+          : 'Upload failed. Check your connection and try again.'
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveArtwork = () => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    setArtwork(null);
+    setUploadError(null);
+  };
+
+  const materialReady = !hasMaterialStep(config.pouchType) || !!config.materialType;
+
   const priceEstimate =
-    config.pouchType && config.windowOption && config.materialType && config.capacity
+    config.pouchType && config.windowOption && materialReady && config.capacity
       ? calculatePrice({
           pouchType: config.pouchType,
           windowOption: config.windowOption,
@@ -42,13 +79,23 @@ export default function QuantityScreen() {
   };
 
   const handleContinue = () => {
-    setConfig({ quantity, artworkUpload });
+    setConfig({
+      quantity,
+      artworkUpload: !!artwork,
+      artworkUrl: artwork?.url,
+      artworkName: artwork?.name,
+      artworkSize: artwork?.size,
+    });
     router.push('/configure/price-summary');
   };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <StepIndicator currentStep={5} totalSteps={5} label="Quantity & Customisation" />
+      <StepIndicator
+        currentStep={getTotalSteps(config.pouchType)}
+        totalSteps={getTotalSteps(config.pouchType)}
+        label="Quantity & Customisation"
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={[styles.question, { color: colors.foreground }]}>Set your order quantity</Text>
 
@@ -88,29 +135,63 @@ export default function QuantityScreen() {
               <Text style={[styles.artworkTitle, { color: colors.foreground }]}>Artwork Upload</Text>
               <Text style={[styles.artworkSub, { color: colors.mutedForeground }]}>(For Printed Pouches)</Text>
             </View>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              style={[
-                styles.artworkUploadBtn,
-                {
-                  backgroundColor: artworkUpload ? colors.primary + '12' : colors.secondary,
-                  borderColor: artworkUpload ? colors.primary : colors.border,
-                  borderRadius: 10,
-                },
-              ]}
-              onPress={() => {
-                if (Platform.OS !== 'web') Haptics.selectionAsync();
-                setArtworkUpload(!artworkUpload);
-              }}
-            >
-              <Feather name={artworkUpload ? 'check-circle' : 'upload-cloud'} size={22} color={artworkUpload ? colors.primary : colors.mutedForeground} />
-              <View>
-                <Text style={[styles.uploadBtnText, { color: artworkUpload ? colors.primary : colors.foreground }]}>
-                  {artworkUpload ? 'Artwork Marked Ready' : 'Upload Design File'}
-                </Text>
-                <Text style={[styles.uploadBtnSub, { color: colors.mutedForeground }]}>PDF, AI, PNG, PSD (Max 50MB)</Text>
+
+            {artwork ? (
+              <View
+                style={[
+                  styles.artworkUploadBtn,
+                  { backgroundColor: colors.primary + '12', borderColor: colors.primary, borderRadius: 10 },
+                ]}
+              >
+                <Feather name="file-text" size={22} color={colors.primary} />
+                <View style={styles.artworkFileMeta}>
+                  <Text style={[styles.uploadBtnText, { color: colors.primary }]} numberOfLines={1}>
+                    {artwork.name}
+                  </Text>
+                  <Text style={[styles.uploadBtnSub, { color: colors.mutedForeground }]}>
+                    {[formatFileSize(artwork.size), 'Uploaded'].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleRemoveArtwork}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${artwork.name}`}
+                >
+                  <Feather name="x-circle" size={20} color={colors.mutedForeground} />
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                disabled={uploading}
+                onPress={handlePickArtwork}
+                accessibilityRole="button"
+                accessibilityLabel="Upload design or reference file"
+                style={[
+                  styles.artworkUploadBtn,
+                  { backgroundColor: colors.secondary, borderColor: colors.border, borderRadius: 10, opacity: uploading ? 0.7 : 1 },
+                ]}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Feather name="upload-cloud" size={22} color={colors.mutedForeground} />
+                )}
+                <View style={styles.artworkFileMeta}>
+                  <Text style={[styles.uploadBtnText, { color: colors.foreground }]}>
+                    {uploading ? 'Uploading…' : 'Upload Design or Reference File'}
+                  </Text>
+                  <Text style={[styles.uploadBtnSub, { color: colors.mutedForeground }]}>PDF, AI, PNG, JPG, PSD (Max 50MB)</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {uploadError && (
+              <Text style={[styles.artworkError, { color: colors.destructive }]}>{uploadError}</Text>
+            )}
+
             <TouchableOpacity activeOpacity={0.7} style={styles.designHelpBtn}>
               <Feather name="help-circle" size={16} color={colors.primary} />
               <Text style={[styles.designHelpText, { color: colors.primary }]}>Need Design Assistance?</Text>
@@ -155,6 +236,8 @@ const styles = StyleSheet.create({
   artworkTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
   artworkSub: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   artworkUploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderWidth: 1 },
+  artworkFileMeta: { flex: 1 },
+  artworkError: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   uploadBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
   uploadBtnSub: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 2 },
   designHelpBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center' },
