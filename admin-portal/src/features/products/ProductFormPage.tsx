@@ -267,7 +267,10 @@ export default function ProductFormPage() {
                 label="Discount %"
                 type="number"
                 fullWidth
-                slotProps={{ input: { endAdornment: <InputAdornment position="end">%</InputAdornment> } }}
+                slotProps={{
+                  input: { endAdornment: <InputAdornment position="end">%</InputAdornment> },
+                  htmlInput: { step: 'any', min: 0, max: 100, inputMode: 'decimal' },
+                }}
                 error={!!errors.discountPercent}
                 helperText={errors.discountPercent?.message}
               />
@@ -398,7 +401,10 @@ export default function ProductFormPage() {
                     type="number"
                     fullWidth
                     size="small"
-                    slotProps={{ input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> } }}
+                    slotProps={{
+                      input: { startAdornment: <InputAdornment position="start">₹</InputAdornment> },
+                      htmlInput: { step: 'any', min: 0, inputMode: 'decimal' },
+                    }}
                     error={!!errors.sizes?.[index]?.pricePerPiece}
                   />
                 </Grid>

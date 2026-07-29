@@ -21,8 +21,10 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import LogoutIcon from '@mui/icons-material/Logout';
+import LockResetIcon from '@mui/icons-material/LockReset';
 import { NAV_ITEMS } from './navConfig';
 import { useAuth } from '@/features/auth/useAuth';
+import ChangePasswordDialog from '@/features/auth/ChangePasswordDialog';
 
 const DRAWER_WIDTH = 260;
 
@@ -34,6 +36,7 @@ export default function AppLayout() {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const activePath =
     NAV_ITEMS.find((item) => (item.path === '/' ? location.pathname === '/' : location.pathname.startsWith(item.path)))
@@ -142,6 +145,15 @@ export default function AppLayout() {
           </IconButton>
           <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}>
             <MenuItem
+              onClick={() => {
+                setMenuAnchor(null);
+                setPasswordOpen(true);
+              }}
+            >
+              <LockResetIcon fontSize="small" sx={{ mr: 1.5 }} /> Change password
+            </MenuItem>
+            <Divider />
+            <MenuItem
               onClick={async () => {
                 setMenuAnchor(null);
                 await logout();
@@ -181,6 +193,8 @@ export default function AppLayout() {
           <Outlet />
         </Box>
       </Box>
+
+      <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </Box>
   );
 }
