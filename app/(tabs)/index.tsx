@@ -16,10 +16,21 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, PouchType } from '@/context/CartContext';
 
-const CATEGORIES: { type: PouchType; label: string; desc: string; image: ImageSourcePropType }[] = [
-  { type: 'plain', label: 'Plain Pouches', desc: 'No Printing', image: require('@/assets/images/silver-standy-pouch.jpg') },
-  { type: 'printed', label: 'Printed Pouches', desc: 'Custom Printing', image: require('@/assets/images/gold-standy-pouch.jpg') },
-  { type: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium', image: require('@/assets/images/kraft-standy-pouch-brown.jpg') },
+/**
+ * Ready-stock pouches are all plain, so the Plain tile opens the stock catalog
+ * instead of the custom-order wizard.
+ */
+type Category = {
+  key: string;
+  label: string;
+  desc: string;
+  image: ImageSourcePropType;
+} & ({ target: 'stock' } | { target: 'configure'; type: PouchType });
+
+const CATEGORIES: Category[] = [
+  { key: 'plain', label: 'Plain Pouches', desc: 'No Printing', image: require('@/assets/images/silver-standy-pouch.jpg'), target: 'stock' },
+  { key: 'printed', label: 'Printed Pouches', desc: 'Custom Printing', image: require('@/assets/images/gold-standy-pouch.jpg'), target: 'configure', type: 'printed' },
+  { key: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium', image: require('@/assets/images/kraft-standy-pouch-brown.jpg'), target: 'configure', type: 'kraft' },
 ];
 
 const FEATURES = [
@@ -43,22 +54,42 @@ export default function HomeScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: topPad + 12 }]}>
-        <View>
+        {/* Brand row: wordmark sits on a white surface so the dark logo ink stays legible */}
+        <View style={styles.brandRow}>
+          <View style={styles.logoPlate}>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="Pacmonk"
+            />
+          </View>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => router.push('/(tabs)/orders')}
+            style={styles.cartBtn}
+            accessibilityRole="button"
+            accessibilityLabel={
+              cart.length > 0
+                ? `Notifications, ${cart.length} item${cart.length > 1 ? 's' : ''} in cart`
+                : 'Notifications'
+            }
+          >
+            <Ionicons name="notifications-outline" size={24} color="#fff" />
+            {cart.length > 0 && (
+              <View style={[styles.badge, { backgroundColor: colors.accent }]}>
+                <Text style={styles.badgeText}>{cart.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerContent}>
           <Text style={styles.greeting}>Hello, Customer</Text>
           <Text style={styles.subGreeting}>Good to see you again!</Text>
         </View>
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={() => router.push('/(tabs)/orders')}
-          style={styles.cartBtn}
-        >
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-          {cart.length > 0 && (
-            <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-              <Text style={styles.badgeText}>{cart.length}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -118,7 +149,7 @@ export default function HomeScreen() {
           <View style={styles.categories}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
-                key={cat.type}
+                key={cat.key}
                 activeOpacity={0.78}
                 style={[
                   styles.categoryCard,
@@ -129,7 +160,9 @@ export default function HomeScreen() {
                   },
                 ]}
                 onPress={() =>
-                  router.push({ pathname: '/configure/pouch-type', params: { preset: cat.type } })
+                  cat.target === 'stock'
+                    ? router.push('/(tabs)/products')
+                    : router.push({ pathname: '/configure/pouch-type', params: { preset: cat.type } })
                 }
               >
                 <View style={[styles.categoryImageWrap, { backgroundColor: colors.secondary }]}>
@@ -190,11 +223,35 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 18,
+    gap: 14,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  logoPlate: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    // Lifts the plate off the green so the wordmark reads as a brand lockup
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  // Native size is 180x35 (~5.14:1); keep that ratio so the wordmark never squashes
+  logo: {
+    width: 118,
+    height: 23,
+  },
+  headerContent: {
+    flex: 1,
   },
   greeting: { fontSize: 22, fontFamily: 'Inter_700Bold', color: '#fff' },
   subGreeting: { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },

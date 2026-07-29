@@ -85,6 +85,10 @@ export interface OrderItem {
   materialType?: MaterialType;
   capacity?: Capacity;
   pouchSize?: string;
+  /** Artwork / reference file the buyer uploaded for printed pouches. */
+  artworkUrl?: string;
+  artworkName?: string;
+  artworkSize?: number;
   productId?: string;
   productName?: string;
   sizeCode?: string;

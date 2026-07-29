@@ -1,5 +1,65 @@
 {
   "firestore": {
     "rules": "firestore.rules"
-  }
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "//": "Pinned so `pnpm test:rules` always targets the same ports. The auth entry must be present or `emulators:exec --only auth` silently skips the emulator with 'make sure you have run firebase init'.",
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8080 },
+    "storage": { "port": 9199 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  },
+  "hosting": [
+    {
+      "target": "app",
+      "public": "dist-web",
+      "//": "Do not add '**/.*' or '**/node_modules/**' here: the Expo web export emits font assets under assets/node_modules/.pnpm/..., and ignoring those paths silently drops every icon and text font.",
+      "ignore": ["firebase.json"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "headers": [
+        {
+          "source": "/_expo/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        },
+        {
+          "source": "/assets/**",
+          "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+        },
+        {
+          "source": "/index.html",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        }
+      ]
+    },
+    {
+      "target": "admin",
+      "public": "admin-portal/dist",
+      "ignore": ["firebase.json"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "headers": [
+        {
+          "source": "/assets/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        },
+        {
+          "source": "/index.html",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        }
+      ]
+    }
+  ]
 }

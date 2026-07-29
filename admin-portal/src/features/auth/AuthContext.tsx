@@ -10,6 +10,7 @@ const USERS_COLLECTION = 'users';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [claimIsAdmin, setClaimIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,8 +18,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(firebaseUser);
       if (!firebaseUser) {
         setProfile(null);
+        setClaimIsAdmin(false);
         setLoading(false);
         return;
+      }
+      try {
+        // The `admin` custom claim is the authoritative signal and matches what
+        // firestore.rules / storage.rules enforce. Set it with
+        // `node scripts/set-admin-claim.js <email>`.
+        const token = await firebaseUser.getIdTokenResult();
+        setClaimIsAdmin(token.claims.admin === true);
+      } catch (err) {
+        console.warn('[auth] Failed to read ID token claims:', err);
+        setClaimIsAdmin(false);
       }
       try {
         const snap = await getDoc(doc(db, USERS_COLLECTION, firebaseUser.uid));
@@ -41,7 +53,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signOut(auth);
   };
 
-  const isAdmin = profile?.role === 'admin';
+  // Claim first, users/{uid}.role as the migration fallback — same precedence
+  // as the security rules, so the UI never shows more than the backend allows.
+  const isAdmin = claimIsAdmin || profile?.role === 'admin';
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, isAdmin, login, logout }}>

@@ -17,8 +17,10 @@ import {
   TableCell,
   TableBody,
   Chip,
+  Link,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { useSnackbar } from 'notistack';
 import { useOrder, useUpdateOrderStatus } from './useOrders';
 import OrderStatusChip from '@/components/OrderStatusChip';
@@ -115,9 +117,21 @@ function OrderDetailContent({ order, onBack }: OrderDetailContentProps) {
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {getItemTitle(item)}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                         {getItemSpec(item)}
                       </Typography>
+                      {item.artworkUrl && (
+                        <Link
+                          href={item.artworkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="caption"
+                          sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}
+                        >
+                          <AttachFileIcon sx={{ fontSize: 14 }} />
+                          {item.artworkName ?? 'Artwork file'}
+                        </Link>
+                      )}
                     </TableCell>
                     <TableCell align="right">{item.quantity}</TableCell>
                     <TableCell align="right">{formatCurrency(item.price)}</TableCell>

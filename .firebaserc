@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "shop-cart-flow"
+  },
+  "targets": {
+    "shop-cart-flow": {
+      "hosting": {
+        "app": ["shop-cart-flow"],
+        "admin": ["shop-cart-flow-admin"]
+      }
+    }
   }
 }

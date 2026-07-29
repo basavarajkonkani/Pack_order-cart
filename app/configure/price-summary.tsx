@@ -4,7 +4,7 @@ import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, calculatePrice, getPouchLabel, getCapacitySize } from '@/context/CartContext';
+import { useCart, calculatePrice, getPouchLabel, getCapacitySize, hasMaterialStep } from '@/context/CartContext';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
 
@@ -14,13 +14,16 @@ export default function PriceSummaryScreen() {
   const { config, addToCart, resetConfig } = useCart();
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
-  const isComplete = config.pouchType && config.windowOption && config.materialType && config.capacity && config.quantity;
+  const materialRequired = hasMaterialStep(config.pouchType);
+  const isComplete =
+    config.pouchType && config.windowOption && config.capacity && config.quantity &&
+    (!materialRequired || config.materialType);
 
   const price = isComplete
     ? calculatePrice({
         pouchType: config.pouchType!,
         windowOption: config.windowOption!,
-        materialType: config.materialType!,
+        materialType: config.materialType,
         capacity: config.capacity!,
         quantity: config.quantity!,
       })
@@ -29,10 +32,15 @@ export default function PriceSummaryScreen() {
   const rows = [
     { label: 'Pouch Type', value: config.pouchType ? getPouchLabel(config.pouchType) : '–' },
     { label: 'Window Option', value: config.windowOption === 'with' ? 'With Window' : config.windowOption === 'without' ? 'Without Window' : '–' },
-    { label: 'Material', value: config.materialType === 'metalised' ? 'Metalised' : config.materialType === 'non-metalised' ? 'Non-Metalised' : '–' },
+    ...(materialRequired
+      ? [{ label: 'Material', value: config.materialType === 'metalised' ? 'Metalised' : config.materialType === 'non-metalised' ? 'Non-Metalised' : '–' }]
+      : []),
     { label: 'Capacity', value: config.capacity ?? '–' },
     { label: 'Pouch Size', value: config.capacity ? getCapacitySize(config.capacity) : '–' },
     { label: 'Quantity', value: config.quantity ? `${config.quantity.toLocaleString('en-IN')} pcs` : '–' },
+    ...(config.pouchType === 'printed'
+      ? [{ label: 'Artwork', value: config.artworkName ?? 'Not attached' }]
+      : []),
   ];
 
   const handleAddToCart = () => {
@@ -41,11 +49,14 @@ export default function PriceSummaryScreen() {
     addToCart({
       pouchType: config.pouchType!,
       windowOption: config.windowOption!,
-      materialType: config.materialType!,
+      ...(materialRequired ? { materialType: config.materialType! } : {}),
       capacity: config.capacity!,
       quantity: config.quantity!,
       price,
       pouchSize: getCapacitySize(config.capacity!),
+      ...(config.artworkUrl
+        ? { artworkUrl: config.artworkUrl, artworkName: config.artworkName, artworkSize: config.artworkSize }
+        : {}),
     });
     resetConfig();
     router.push('/(tabs)/cart');

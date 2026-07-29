@@ -18,6 +18,10 @@ export function getItemSpec(item: OrderItem): string {
     return [item.sizeLabel, item.sizeWeight].filter(Boolean).join(' · ');
   }
   const windowText = item.windowOption === 'with' ? 'With Window' : 'No Window';
-  const materialText = item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised';
-  return `${windowText} · ${materialText} · ${item.capacity ?? ''}`.replace(/\s·\s$/, '');
+  // Kraft pouches are paper-based, so they carry no metalised / non-metalised spec.
+  const materialText =
+    item.pouchType === 'kraft' || !item.materialType
+      ? null
+      : item.materialType === 'metalised' ? 'Metalised' : 'Non-Metalised';
+  return [windowText, materialText, item.capacity].filter(Boolean).join(' · ');
 }
