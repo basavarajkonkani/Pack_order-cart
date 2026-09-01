@@ -6,12 +6,15 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, calculatePrice, getPouchLabel, getCapacitySize, hasMaterialStep } from '@/context/CartContext';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { usePrintedPricing } from '@/hooks/usePrintedPricing';
+import { calculatePrintedPrice, getCombinationKey } from '@/lib/printedPouchPricing';
 import * as Haptics from 'expo-haptics';
 
 export default function PriceSummaryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { config, addToCart, resetConfig } = useCart();
+  const { pricing } = usePrintedPricing();
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
 
   const materialRequired = hasMaterialStep(config.pouchType);
@@ -19,15 +22,53 @@ export default function PriceSummaryScreen() {
     config.pouchType && config.windowOption && config.capacity && config.quantity &&
     (!materialRequired || config.materialType);
 
+  // Printed pouches use live Firestore pricing; plain/kraft use the static calculatePrice.
   const price = isComplete
-    ? calculatePrice({
-        pouchType: config.pouchType!,
-        windowOption: config.windowOption!,
-        materialType: config.materialType,
-        capacity: config.capacity!,
-        quantity: config.quantity!,
-      })
+    ? config.pouchType === 'printed'
+      ? calculatePrintedPrice(
+          {
+            windowOption: config.windowOption!,
+            materialType: config.materialType,
+            capacity: config.capacity!,
+            quantity: config.quantity!,
+          },
+          pricing,
+        )
+      : calculatePrice({
+          pouchType: config.pouchType!,
+          windowOption: config.windowOption!,
+          materialType: config.materialType,
+          capacity: config.capacity!,
+          quantity: config.quantity!,
+        })
     : 0;
+
+  // Accurate breakdown for printed pouches using live pricing.
+  // For plain/kraft we keep the simple 85/15 cosmetic split since those
+  // prices are fixed and not broken down by add-on.
+  const breakdown: { label: string; amount: number; included: boolean }[] = (() => {
+    if (config.pouchType !== 'printed' || !isComplete) return [];
+    const mult = pricing.capacityMultipliers[config.capacity!] ?? 1.0;
+    const qty = config.quantity!;
+    // Use the combination key to get the exact price for this selection
+    const comboKey = getCombinationKey(config.windowOption!, config.materialType);
+    const comboPricePerPiece = pricing.combinations[comboKey];
+    const basePricePerPiece = pricing.combinations.noWindowNonMetal;
+
+    const baseCost      = Math.round(basePricePerPiece * mult * qty);
+    const windowCost    = config.windowOption === 'with'
+      ? Math.round((pricing.combinations.windowNonMetal - pricing.combinations.noWindowNonMetal) * mult * qty)
+      : 0;
+    const metalisedCost = config.materialType === 'metalised'
+      ? Math.round((comboPricePerPiece - (config.windowOption === 'with' ? pricing.combinations.windowNonMetal : pricing.combinations.noWindowNonMetal)) * mult * qty)
+      : 0;
+
+    return [
+      { label: 'Base Cost',       amount: baseCost,      included: true },
+      { label: config.windowOption === 'with' ? 'Window Add-on' : 'Without Window',   amount: windowCost,    included: config.windowOption === 'with' },
+      { label: config.materialType === 'metalised' ? 'Metalised Add-on' : 'Non-Metalised', amount: metalisedCost, included: config.materialType === 'metalised' },
+    ];
+  })();
 
   const rows = [
     { label: 'Pouch Type', value: config.pouchType ? getPouchLabel(config.pouchType) : '–' },
@@ -81,14 +122,28 @@ export default function PriceSummaryScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Price Summary</Text>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <View style={styles.row}>
-            <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Base Price</Text>
-            <Text style={[styles.rowValue, { color: colors.foreground }]}>₹{Math.round(price * 0.85).toLocaleString('en-IN')}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Customisation</Text>
-            <Text style={[styles.rowValue, { color: colors.foreground }]}>₹{Math.round(price * 0.15).toLocaleString('en-IN')}</Text>
-          </View>
+          {config.pouchType === 'printed' && breakdown.length > 0
+            ? breakdown.map((item) => (
+                <View key={item.label} style={styles.row}>
+                  <Text style={[styles.rowLabel, { color: item.included ? colors.mutedForeground : colors.mutedForeground }]}>{item.label}</Text>
+                  <Text style={[styles.rowValue, { color: item.included ? colors.foreground : colors.mutedForeground }]}>
+                    {item.included ? `₹${item.amount.toLocaleString('en-IN')}` : 'Not included'}
+                  </Text>
+                </View>
+              ))
+            : (
+              <>
+                <View style={styles.row}>
+                  <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Base Price</Text>
+                  <Text style={[styles.rowValue, { color: colors.foreground }]}>₹{Math.round(price * 0.85).toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>Customisation</Text>
+                  <Text style={[styles.rowValue, { color: colors.foreground }]}>₹{Math.round(price * 0.15).toLocaleString('en-IN')}</Text>
+                </View>
+              </>
+            )
+          }
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.row}>
             <Text style={[styles.totalLabel, { color: colors.foreground }]}>Estimated Price</Text>
@@ -109,7 +164,9 @@ export default function PriceSummaryScreen() {
             <Feather name="package" size={18} color={colors.primary} />
             <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Min. Order</Text>
             <Text style={[styles.infoValue, { color: colors.primary }]}>
-              {config.pouchType === 'printed' ? '5,000' : '1,000'} pcs
+              {config.pouchType === 'printed'
+                ? pricing.minOrderQuantity.toLocaleString('en-IN')
+                : '1,000'} pcs
             </Text>
           </View>
         </View>

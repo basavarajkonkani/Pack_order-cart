@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
-  ImageSourcePropType,
   Platform,
   ScrollView,
   StyleSheet,
@@ -14,24 +13,25 @@ import { useColors } from '@/hooks/useColors';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, PouchType } from '@/context/CartContext';
+import { useCart } from '@/context/CartContext';
+import { AppCategory } from '@/lib/categories';
+import { useCategories } from '@/hooks/useCategories';
+import { CategorySkeleton } from '@/components/CategorySkeleton';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { prefetchImages } from '@/lib/imageOptimization';
 
 /**
- * Ready-stock pouches are all plain, so the Plain tile opens the stock catalog
- * instead of the custom-order wizard.
+ * Maps a category id/slug to a bundled local image so existing categories
+ * (plain, printed, kraft) still show their original photos when no imageUrl
+ * is stored in Firestore. Admin-added categories that supply an imageUrl will
+ * use the remote image instead.
  */
-type Category = {
-  key: string;
-  label: string;
-  desc: string;
-  image: ImageSourcePropType;
-} & ({ target: 'stock' } | { target: 'configure'; type: PouchType });
-
-const CATEGORIES: Category[] = [
-  { key: 'plain', label: 'Plain Pouches', desc: 'No Printing', image: require('@/assets/images/silver-standy-pouch.jpg'), target: 'stock' },
-  { key: 'printed', label: 'Printed Pouches', desc: 'Custom Printing', image: require('@/assets/images/gold-standy-pouch.jpg'), target: 'configure', type: 'printed' },
-  { key: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium', image: require('@/assets/images/kraft-standy-pouch-brown.jpg'), target: 'configure', type: 'kraft' },
-];
+const LOCAL_IMAGES: Record<string, ReturnType<typeof require>> = {
+  plain: require('@/assets/images/silver-standy-pouch.jpg'),
+  printed: require('@/assets/images/gold-standy-pouch.jpg'),
+  kraft: require('@/assets/images/kraft-standy-pouch-brown.jpg'),
+};
+const PLACEHOLDER_IMAGE = require('@/assets/images/logo.png');
 
 const FEATURES = [
   { icon: 'shield', text: 'Quality Assured', sub: 'ISO certified materials' },
@@ -39,12 +39,67 @@ const FEATURES = [
   { icon: 'edit-2', text: 'Custom Print', sub: 'Full colour printing' },
 ];
 
+/**
+ * Determines where tapping a category tile navigates.
+ * - Stock categories (bopp-bags, standup-pouches, kraft-pouches) → stock catalog filtered by category
+ * - "plain" id → stock catalog (all products, legacy support)
+ * - anything else → configure wizard with the id passed as `preset`
+ */
+function getCategoryTarget(cat: AppCategory) {
+  const lowerName = cat.name.toLowerCase();
+  const lowerDesc = (cat.description || '').toLowerCase();
+  const isStockCategory = 
+    cat.id === 'plain' || 
+    cat.id === 'bopp-bags' ||
+    cat.id === 'standup-pouches' ||
+    cat.id === 'kraft-pouches' ||
+    lowerName.includes('bopp') || 
+    lowerName.includes('standup') || 
+    lowerName.includes('standy') || 
+    lowerName.includes('kraft') || 
+    lowerName.includes('center') ||
+    lowerName.includes('seal') ||
+    lowerDesc.includes('stock') ||
+    lowerDesc.includes('ready');
+  
+  if (isStockCategory) {
+    return () => router.push({ 
+      pathname: '/(tabs)/products', 
+      params: cat.id === 'plain' ? {} : { categoryId: cat.id } 
+    });
+  }
+  return () =>
+    router.push({ pathname: '/configure/pouch-type', params: { preset: cat.id } });
+}
+
+/** Returns the image source for a category — remote URL, local bundle, or placeholder. */
+function getCategoryImage(cat: AppCategory) {
+  if (cat.imageUrl) return { uri: cat.imageUrl };
+  return LOCAL_IMAGES[cat.id] ?? PLACEHOLDER_IMAGE;
+}
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { cart } = useCart();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 8 : insets.top + 8;
   const [search, setSearch] = useState('');
+  
+  // Use React Query for cached category fetching
+  const { data: categories = [], isLoading: catsLoading } = useCategories();
+
+  // Prefetch category images in the background for faster rendering
+  useEffect(() => {
+    if (categories.length > 0) {
+      const imageUrls = categories
+        .map((cat) => cat.imageUrl)
+        .filter((url): url is string => !!url);
+      
+      if (imageUrls.length > 0) {
+        prefetchImages(imageUrls);
+      }
+    }
+  }, [categories]);
 
   const handleSearchSubmit = () => {
     router.push({ pathname: '/(tabs)/products', params: search.trim() ? { q: search.trim() } : {} });
@@ -53,7 +108,7 @@ export default function HomeScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: topPad + 12 }]}>
+      <View style={[styles.header, { backgroundColor: colors.primary, paddingTop: topPad }]}>
         {/* Brand row: wordmark sits on a white surface so the dark logo ink stays legible */}
         <View style={styles.brandRow}>
           <View style={styles.logoPlate}>
@@ -146,37 +201,54 @@ export default function HomeScreen() {
         {/* Shop by Category */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Shop by Category</Text>
-          <View style={styles.categories}>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.key}
-                activeOpacity={0.78}
-                style={[
-                  styles.categoryCard,
-                  {
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    borderRadius: colors.radius,
-                  },
-                ]}
-                onPress={() =>
-                  cat.target === 'stock'
-                    ? router.push('/(tabs)/products')
-                    : router.push({ pathname: '/configure/pouch-type', params: { preset: cat.type } })
-                }
-              >
-                <View style={[styles.categoryImageWrap, { backgroundColor: colors.secondary }]}>
-                  <Image source={cat.image} style={styles.categoryImage} resizeMode="cover" />
-                </View>
-                <Text style={[styles.categoryLabel, { color: colors.foreground }]} numberOfLines={1}>
-                  {cat.label.split(' ')[0]}
-                </Text>
-                <Text style={[styles.categoryDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
-                  {cat.desc}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesScroll}
+            decelerationRate="fast"
+            snapToInterval={Platform.OS === 'ios' ? 110 : undefined}
+            snapToAlignment="start"
+          >
+            {catsLoading ? (
+              // Show skeleton loaders while loading
+              <>
+                <CategorySkeleton />
+                <CategorySkeleton />
+                <CategorySkeleton />
+              </>
+            ) : (
+              categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  activeOpacity={0.78}
+                  style={[
+                    styles.categoryCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: colors.border,
+                      borderRadius: colors.radius,
+                    },
+                  ]}
+                  onPress={getCategoryTarget(cat)}
+                >
+                  <View style={[styles.categoryImageWrap, { backgroundColor: colors.secondary }]}>
+                    <OptimizedImage
+                      source={getCategoryImage(cat)}
+                      style={styles.categoryImage}
+                      resizeMode="cover"
+                      showLoader={false}
+                    />
+                  </View>
+                  <Text style={[styles.categoryLabel, { color: colors.foreground }]} numberOfLines={1}>
+                    {cat.name.split(' ')[0]}
+                  </Text>
+                  <Text style={[styles.categoryDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
+                    {cat.description ?? ''}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
         </View>
 
         {/* Feature Highlights */}
@@ -237,7 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 4,
     // Lifts the plate off the green so the wordmark reads as a brand lockup
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -280,8 +352,17 @@ const styles = StyleSheet.create({
   heroImage: { width: 130, height: '100%' },
   section: { gap: 12 },
   sectionTitle: { fontSize: 17, fontFamily: 'Inter_700Bold' },
-  categories: { flexDirection: 'row', gap: 10 },
-  categoryCard: { flex: 1, alignItems: 'center', padding: 14, borderWidth: 1, gap: 6 },
+  categoriesScroll: { 
+    paddingRight: 16,
+    gap: 10,
+  },
+  categoryCard: { 
+    width: 100,
+    alignItems: 'center', 
+    padding: 14, 
+    borderWidth: 1, 
+    gap: 6 
+  },
   categoryImageWrap: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden' },
   categoryImage: { width: '100%', height: '100%' },
   categoryLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },

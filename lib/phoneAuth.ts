@@ -5,6 +5,7 @@ import {
   linkWithCredential,
   signInWithCredential,
   signInWithPhoneNumber,
+  signOut,
   type AuthCredential,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -111,10 +112,18 @@ export async function sendOtp(phoneE164: string): Promise<string> {
   // and would fail. Callers shouldn't have to remember to reset first.
   resetPhoneAuth();
 
+  let confirmation;
   try {
-    const confirmation = await signInWithPhoneNumber(auth, phoneE164, createVerifier());
+    const freshVerifier = createVerifier();
+    confirmation = await signInWithPhoneNumber(auth, phoneE164, freshVerifier);
+    
+    console.log('[phoneAuth] OTP sent successfully, verificationId:', confirmation.verificationId.substring(0, 20) + '...');
+    
+    // Keep the verifier intact after successful send - it needs to remain
+    // for the verification to work properly
     return confirmation.verificationId;
   } catch (err) {
+    console.error('[phoneAuth] Failed to send OTP:', err);
     // A failed attempt leaves the challenge in a spent state; without this the
     // retry fails with the same error regardless of what the user changes.
     resetPhoneAuth();
@@ -146,27 +155,80 @@ export interface ConfirmOtpResult {
 export async function confirmOtp(verificationId: string, code: string): Promise<ConfirmOtpResult> {
   if (!isPhoneAuthAvailable()) throw new PhoneAuthUnavailableError();
 
-  const credential: AuthCredential = PhoneAuthProvider.credential(verificationId, code);
-  const current = auth.currentUser;
+  console.log('[phoneAuth] Starting OTP confirmation');
+  console.log('[phoneAuth] verificationId exists:', !!verificationId, 'length:', verificationId?.length || 0);
+  console.log('[phoneAuth] code:', code, 'length:', code?.length || 0);
 
+  // Validate inputs before attempting Firebase call
+  if (!verificationId || verificationId.trim() === '') {
+    console.error('[phoneAuth] Invalid verificationId');
+    const err = new Error('Invalid verification session');
+    (err as any).code = 'auth/invalid-verification-id';
+    throw err;
+  }
+  
+  if (!code || code.trim() === '' || code.length !== 6) {
+    console.error('[phoneAuth] Invalid code');
+    const err = new Error('Invalid verification code');
+    (err as any).code = 'auth/invalid-verification-code';
+    throw err;
+  }
+
+  // Create credential - this doesn't validate with Firebase yet
+  const credential: AuthCredential = PhoneAuthProvider.credential(verificationId, code);
+  console.log('[phoneAuth] Credential object created');
+  
+  const current = auth.currentUser;
+  console.log('[phoneAuth] Current user UID:', current?.uid, 'isAnonymous:', current?.isAnonymous);
+
+  // The actual Firebase network call happens here when we use the credential
   if (current?.isAnonymous) {
     try {
-      await linkWithCredential(current, credential);
+      console.log('[phoneAuth] Attempting linkWithCredential...');
+      const result = await linkWithCredential(current, credential);
+      console.log('[phoneAuth] linkWithCredential SUCCESS, user:', result.user.uid);
+      // Clean up after successful verification
+      resetPhoneAuth();
       return { preservedGuestData: true };
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      // The number is already registered. Falling back to a plain sign-in is the
-      // only option — Firebase has no account-merge primitive.
-      if (code === 'auth/credential-already-in-use' || code === 'auth/account-exists-with-different-credential') {
-        await signInWithCredential(auth, credential);
-        return { preservedGuestData: false };
+      console.error('[phoneAuth] linkWithCredential FAILED:', err);
+      const errorCode = (err as { code?: string }).code;
+      console.error('[phoneAuth] Error code:', errorCode);
+      
+      // The number is already registered. We need to sign in with the phone credential.
+      // IMPORTANT: The credential was already consumed by the linkWithCredential attempt above,
+      // so it cannot be reused. Firebase OTP credentials are single-use.
+      if (errorCode === 'auth/credential-already-in-use' || errorCode === 'auth/account-exists-with-different-credential') {
+        console.log('[phoneAuth] Phone number already registered');
+        console.log('[phoneAuth] Credential consumed by link attempt, cannot proceed with same OTP');
+        
+        // The OTP has been consumed and cannot be reused for signInWithCredential.
+        // We need to inform the user to request a new OTP for signing in.
+        const message = 'This phone number is already registered. Please request a new OTP to sign in to your existing account.';
+        const customError = new Error(message);
+        (customError as any).code = 'auth/phone-number-already-registered';
+        resetPhoneAuth();
+        throw customError;
       }
+      // Clean up on error
+      resetPhoneAuth();
       throw err;
     }
   }
 
-  await signInWithCredential(auth, credential);
-  return { preservedGuestData: false };
+  // Non-anonymous user path
+  try {
+    console.log('[phoneAuth] Non-anonymous user, attempting signInWithCredential...');
+    const result = await signInWithCredential(auth, credential);
+    console.log('[phoneAuth] signInWithCredential SUCCESS, user:', result.user.uid);
+    resetPhoneAuth();
+    return { preservedGuestData: false };
+  } catch (err) {
+    console.error('[phoneAuth] signInWithCredential FAILED:', err);
+    console.error('[phoneAuth] Error code:', (err as { code?: string }).code);
+    resetPhoneAuth();
+    throw err;
+  }
 }
 
 /** Maps Firebase auth error codes to messages worth showing a buyer. */
@@ -174,13 +236,25 @@ export function phoneAuthErrorMessage(err: unknown): string {
   if (err instanceof PhoneAuthUnavailableError) return err.message;
 
   const code = (err as { code?: string })?.code;
+  const message = (err as { message?: string })?.message;
+  
   switch (code) {
     case 'auth/invalid-phone-number':
       return 'That mobile number is not valid. Check it and try again.';
     case 'auth/invalid-verification-code':
-      return 'Incorrect OTP. Please try again.';
+      return 'Incorrect OTP. Please try again or resend a new code.';
     case 'auth/code-expired':
-      return 'That OTP has expired. Request a new one.';
+      return 'That OTP has expired. Please request a new one.';
+    case 'auth/session-expired':
+      return 'Verification session expired. Please request a new OTP.';
+    case 'auth/invalid-verification-id':
+      return 'Verification failed. Please request a new OTP.';
+    case 'auth/phone-number-already-registered':
+      return message || 'This phone number is already registered. Please request a new OTP to sign in.';
+    case 'auth/account-exists-with-different-credential':
+      return 'This phone number is already registered. Please request a new OTP to sign in to your existing account.';
+    case 'auth/credential-already-in-use':
+      return 'This phone number is already in use. Please request a new OTP to sign in to your existing account.';
     case 'auth/too-many-requests':
       return 'Too many attempts. Please wait a few minutes before trying again.';
     case 'auth/quota-exceeded':
@@ -197,6 +271,6 @@ export function phoneAuthErrorMessage(err: unknown): string {
       // generic message and the real code is invisible, which is exactly what
       // made the spent-reCAPTCHA failure hard to pin down.
       console.warn('[phoneAuth] Unmapped OTP error:', code ?? '(no code)', err);
-      return 'Something went wrong sending the OTP. Please try again.';
+      return 'Something went wrong. Please try again.';
   }
 }

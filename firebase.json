@@ -19,7 +19,11 @@
       "public": "dist-web",
       "//": "Do not add '**/.*' or '**/node_modules/**' here: the Expo web export emits font assets under assets/node_modules/.pnpm/..., and ignoring those paths silently drops every icon and text font.",
       "ignore": ["firebase.json"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }],
+      "rewrites": [
+        { "source": "/privacy-policy.html", "destination": "/privacy-policy.html" },
+        { "source": "/terms-of-service.html", "destination": "/terms-of-service.html" },
+        { "source": "**", "destination": "/index.html" }
+      ],
       "headers": [
         {
           "source": "/_expo/**",
@@ -33,6 +37,10 @@
         {
           "source": "/assets/**",
           "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+        },
+        {
+          "source": "**/*.html",
+          "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
         },
         {
           "source": "/index.html",

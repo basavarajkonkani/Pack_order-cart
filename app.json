@@ -1,38 +1,69 @@
 {
   "expo": {
-    "name": "PackOrder – Packaging Material Ordering",
-    "slug": "mobile",
-    "version": "1.0.0",
+    "name": "Pacmonk",
+    "slug": "pacmonk",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "pacmonk",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#F3FAF5"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.pacmonk.app",
+      "buildNumber": "2"
     },
-    "android": {},
+    "android": {
+      "package": "com.pacmonk.app",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#F3FAF5"
+      },
+      "permissions": [
+        "android.permission.INTERNET"
+      ],
+      "googleServicesFile": "./google-services.json"
+    },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/icon.png",
+      "bundler": "metro"
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://replit.com/"
+          "origin": "https://shop-cart-flow.web.app"
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "usesCleartextTraffic": false
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "52285b59-721d-48e2-a8b0-3bb7da9ef249"
+      }
+    },
+    "owner": "basavarajkonkani"
   }
 }

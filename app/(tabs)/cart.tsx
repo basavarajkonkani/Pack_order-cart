@@ -18,7 +18,7 @@ export default function CartScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 8 : insets.top + 8;
 
   const handleRemove = (id: string) => {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -38,7 +38,7 @@ export default function CartScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad, borderBottomColor: colors.border }]}>
         <Text style={[styles.title, { color: colors.foreground }]}>My Cart</Text>
         {cart.length > 0 && (
           <Text style={[styles.sub, { color: colors.mutedForeground }]}>

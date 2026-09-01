@@ -4,11 +4,13 @@ import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useCart, calculatePrice, getMinOrder, getTotalSteps, hasMaterialStep } from '@/context/CartContext';
+import { useCart, getMinOrder, getTotalSteps, hasMaterialStep } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { ArtworkError, formatFileSize, pickArtwork, uploadArtwork, UploadedArtwork } from '@/lib/artwork';
 import { StepIndicator } from '@/components/StepIndicator';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { usePrintedPricing } from '@/hooks/usePrintedPricing';
+import { calculatePrintedPrice } from '@/lib/printedPouchPricing';
 import * as Haptics from 'expo-haptics';
 
 export default function QuantityScreen() {
@@ -16,8 +18,9 @@ export default function QuantityScreen() {
   const insets = useSafeAreaInsets();
   const { config, setConfig } = useCart();
   const { user } = useAuth();
+  const { pricing } = usePrintedPricing();
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
-  const minOrder = getMinOrder(config.pouchType ?? 'plain');
+  const minOrder = getMinOrder(config.pouchType ?? 'plain', pricing.minOrderQuantity);
   const [quantity, setQuantity] = useState(minOrder);
   const [artwork, setArtwork] = useState<UploadedArtwork | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -56,15 +59,23 @@ export default function QuantityScreen() {
 
   const materialReady = !hasMaterialStep(config.pouchType) || !!config.materialType;
 
+  // For printed pouches, use live Firestore pricing.
+  // For plain/kraft pouches this screen isn't used for price display,
+  // but we keep a fallback of 0 for safety.
   const priceEstimate =
-    config.pouchType && config.windowOption && materialReady && config.capacity
-      ? calculatePrice({
-          pouchType: config.pouchType,
-          windowOption: config.windowOption,
-          materialType: config.materialType,
-          capacity: config.capacity,
-          quantity,
-        })
+    config.pouchType === 'printed' &&
+    config.windowOption &&
+    materialReady &&
+    config.capacity
+      ? calculatePrintedPrice(
+          {
+            windowOption: config.windowOption,
+            materialType: config.materialType,
+            capacity: config.capacity,
+            quantity,
+          },
+          pricing,
+        )
       : 0;
 
   const decrement = () => {

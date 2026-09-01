@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 
 const RESEND_SECONDS = 30;
 const OTP_LENGTH = 6;
+const OTP_VALIDITY_MINUTES = 5; // Firebase OTPs typically expire after 5 minutes
 
 type Step = 'phone' | 'otp';
 
@@ -44,6 +45,7 @@ export default function VerifyMobileScreen() {
   const [verifying, setVerifying] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [verificationId, setVerificationId] = useState('');
+  const [otpSentAt, setOtpSentAt] = useState<number>(0); // Track when OTP was sent
   const otpInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function VerifyMobileScreen() {
     try {
       const id = await sendPhoneOtp(phone);
       setVerificationId(id);
+      setOtpSentAt(Date.now()); // Track when OTP was sent
       setResendTimer(RESEND_SECONDS);
       setOtp('');
       if (Platform.OS !== 'web') {
@@ -112,9 +115,17 @@ export default function VerifyMobileScreen() {
       setError('Enter the 6-digit OTP');
       return;
     }
+    
+    // Check if we have a valid verificationId
+    if (!verificationId) {
+      setError('Verification session expired. Please request a new OTP.');
+      return;
+    }
+    
     setVerifying(true);
     setError('');
     setNotice('');
+    
     try {
       // Firebase verifies the code server-side and, where possible, links the
       // number onto the existing guest account so the cart and past orders
@@ -134,9 +145,45 @@ export default function VerifyMobileScreen() {
         );
       }
 
+      // Small delay to ensure Firebase auth state is updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       router.replace({ pathname: '/checkout', params: { phone } });
-    } catch (err) {
-      setError(phoneAuthErrorMessage(err));
+    } catch (err: any) {
+      const errorCode = err?.code || '';
+      const errorMsg = phoneAuthErrorMessage(err);
+      
+      console.error('[verify-mobile] OTP verification failed:', {
+        code: errorCode,
+        message: err?.message,
+        fullError: err
+      });
+      
+      // Special handling for "account exists" errors
+      if (errorCode === 'auth/account-exists-with-different-credential' || 
+          errorCode === 'auth/credential-already-in-use' ||
+          errorCode === 'auth/phone-number-already-registered') {
+        setError(errorMsg);
+        // Clear the OTP and verification ID so user must request a new OTP
+        setVerificationId('');
+        setOtpSentAt(0);
+        setOtp('');
+        // Optionally send them back to the phone entry screen
+        // setStep('phone');
+        return;
+      }
+      
+      setError(errorMsg);
+      
+      // If the error is code-expired or session-expired, clear the verificationId
+      // so the user must request a new OTP
+      if (errorCode === 'auth/code-expired' || 
+          errorCode === 'auth/session-expired' || 
+          errorCode === 'auth/invalid-verification-id') {
+        setVerificationId('');
+        setOtpSentAt(0);
+      }
+      
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }

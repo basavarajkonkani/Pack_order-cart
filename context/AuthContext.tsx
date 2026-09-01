@@ -14,6 +14,11 @@ import {
   toE164,
   type ConfirmOtpResult,
 } from '@/lib/phoneAuth';
+import {
+  registerForPushNotifications,
+  saveFCMToken,
+  removeFCMToken,
+} from '@/lib/notifications';
 
 export interface Address {
   id: string;
@@ -154,15 +159,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     code: string,
     tenDigitNumber: string
   ): Promise<ConfirmOtpResult> => {
-    const result = await confirmOtp(verificationId, code);
+    console.log('[AuthContext] Starting verifyPhoneOtp');
+    console.log('[AuthContext] verificationId length:', verificationId?.length);
+    console.log('[AuthContext] code:', code);
+    
+    let result: ConfirmOtpResult;
+    try {
+      result = await confirmOtp(verificationId, code);
+      console.log('[AuthContext] confirmOtp succeeded, preservedGuestData:', result.preservedGuestData);
+    } catch (err) {
+      console.error('[AuthContext] confirmOtp failed:', err);
+      // Don't reset here - let the error propagate and handle cleanup in the UI
+      throw err;
+    }
 
     // The challenge is single-use; drop it so a later verification starts fresh.
     resetPhoneAuth();
+    console.log('[AuthContext] resetPhoneAuth called');
 
     // Write against auth.currentUser rather than the `user` state value: on the
     // fallback path confirmOtp swapped the account, and the onAuthStateChanged
     // listener has not re-rendered us yet, so `user` still holds the old UID.
     const active = auth.currentUser;
+    console.log('[AuthContext] Current user after confirmOtp:', active?.uid);
+    
     if (active) {
       const userRef = doc(db, USERS_COLLECTION, active.uid);
       const snap = await getDoc(userRef);
@@ -173,15 +193,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // write through the isAdmin() branch rather than blocking it. `createdAt`
         // is left alone too so the original signup date survives re-verification.
         await setDoc(userRef, { phone: tenDigitNumber }, { merge: true });
+        console.log('[AuthContext] Phone number saved to existing profile');
       } else {
         await setDoc(userRef, {
           phone: tenDigitNumber,
           role: 'customer',
           createdAt: serverTimestamp(),
         });
+        console.log('[AuthContext] New profile created with phone number');
+      }
+
+      // Register for push notifications after successful phone verification
+      try {
+        const permissionResult = await registerForPushNotifications();
+        if (permissionResult.granted) {
+          await saveFCMToken();
+        }
+      } catch (err) {
+        console.warn('[auth] Failed to setup push notifications:', err);
       }
     }
 
+    console.log('[AuthContext] verifyPhoneOtp completed successfully');
     return result;
   };
 

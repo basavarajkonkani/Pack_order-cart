@@ -16,10 +16,23 @@ import * as SplashScreen from 'expo-splash-screen';
 import { CartProvider } from '@/context/CartContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { useColors } from '@/hooks/useColors';
+import { initCrashlytics } from '@/lib/crashlytics';
 
 SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient();
+// Initialize Crashlytics
+initCrashlytics();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes default
+      gcTime: 30 * 60 * 1000, // 30 minutes cache retention
+      retry: 2, // Retry failed requests twice
+      refetchOnWindowFocus: false, // Don't refetch on app focus
+    },
+  },
+});
 
 function RootLayoutNav() {
   const colors = useColors();
@@ -46,6 +59,8 @@ function RootLayoutNav() {
       <Stack.Screen name="wishlist" options={{ headerShown: false }} />
       <Stack.Screen name="design-assistance" options={{ headerShown: false }} />
       <Stack.Screen name="help-support" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+      <Stack.Screen name="terms-of-service" options={{ headerShown: false }} />
     </Stack>
   );
 }

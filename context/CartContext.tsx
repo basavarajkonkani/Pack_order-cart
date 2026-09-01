@@ -263,6 +263,10 @@ export function calculatePrice(
   config: Required<Pick<OrderConfig, 'pouchType' | 'windowOption' | 'capacity' | 'quantity'>> &
     Pick<OrderConfig, 'materialType'>
 ): number {
+  // Plain and Kraft pouches use fixed hardcoded pricing.
+  // Printed pouches should use calculatePrintedPrice() from lib/printedPouchPricing
+  // with live Firestore data. This fallback is kept only for backward compatibility
+  // (e.g. tests or places that haven't been migrated), and uses the default values.
   const basePerPiece: Record<PouchType, number> = { plain: 1.5, printed: 3.0, kraft: 2.0 };
   let price = basePerPiece[config.pouchType];
   if (config.windowOption === 'with') price += 0.5;
@@ -298,6 +302,7 @@ export function getCapacitySize(cap: Capacity): string {
   return { '50g': '80 × 120 mm', '100g': '100 × 150 mm', '250g': '160 × 240 mm', '500g': '190 × 280 mm', '1kg': '220 × 320 mm' }[cap];
 }
 
-export function getMinOrder(type: PouchType): number {
-  return type === 'printed' ? 5000 : 1000;
+export function getMinOrder(type: PouchType, printedMinQty?: number): number {
+  if (type === 'printed') return printedMinQty ?? 1000;
+  return 1000;
 }

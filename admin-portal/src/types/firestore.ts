@@ -198,3 +198,29 @@ export interface StoreSettings {
   };
   updatedAt?: unknown;
 }
+
+// ---------------------------------------------------------------------------
+// printedPouchPricing/current — singleton doc for Printed Customized Pouch
+// pricing. Admin Portal writes it; Buyer App reads it in real-time.
+// ---------------------------------------------------------------------------
+
+export interface PrintedPouchCombinationPrices {
+  noWindowNonMetal: number;
+  noWindowMetal: number;
+  windowNonMetal: number;
+  windowMetal: number;
+}
+
+export interface PrintedPouchPricingDoc {
+  /** Price per piece for each window × material combination */
+  combinations: PrintedPouchCombinationPrices;
+  capacityMultipliers: {
+    '50g': number;
+    '100g': number;
+    '250g': number;
+    '500g': number;
+    '1kg': number;
+  };
+  minOrderQuantity: number;
+  updatedAt?: unknown;
+}

@@ -9,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { getMinPrice } from '@/constants/stockProducts';
 import { fetchProducts } from '@/lib/products';
+import { useCategories } from '@/hooks/useCategories';
 import * as Haptics from 'expo-haptics';
 
 export default function ProductsScreen() {
@@ -16,34 +17,61 @@ export default function ProductsScreen() {
   const insets = useSafeAreaInsets();
   const { cart } = useCart();
   const { isWishlisted, toggleWishlist } = useAuth();
-  const { q } = useLocalSearchParams<{ q?: string }>();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const { q, categoryId } = useLocalSearchParams<{ q?: string; categoryId?: string }>();
+  const topPad = Platform.OS === 'web' ? 8 : insets.top + 8;
   const [search, setSearch] = useState(q ?? '');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
     queryFn: fetchProducts,
   });
 
+  // Fetch categories for dynamic filters
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+
   useEffect(() => {
     if (q) setSearch(q);
   }, [q]);
 
   const filteredProducts = useMemo(() => {
+    let filtered = products;
+    
+    // Filter by selected category filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter((p) => {
+        // Check if product has a categoryId field that matches the selected filter
+        const productCategoryId = (p as any).categoryId;
+        return productCategoryId === selectedFilter;
+      });
+    }
+    
+    // Filter by URL categoryId if provided (takes precedence)
+    if (categoryId) {
+      filtered = filtered.filter((p) => {
+        const productCategoryId = (p as any).categoryId;
+        return productCategoryId === categoryId;
+      });
+    }
+    
+    // Then apply search filter if search query exists
     const query = search.trim().toLowerCase();
-    if (!query) return products;
-    return products.filter((p) =>
-      p.name.toLowerCase().includes(query) ||
-      p.material.toLowerCase().includes(query) ||
-      p.desc.toLowerCase().includes(query) ||
-      (p.sizes ?? []).some((s) => s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
-    );
-  }, [search, products]);
+    if (query) {
+      filtered = filtered.filter((p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.material.toLowerCase().includes(query) ||
+        p.desc.toLowerCase().includes(query) ||
+        (p.sizes ?? []).some((s) => s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
+      );
+    }
+    
+    return filtered;
+  }, [search, products, categoryId, selectedFilter]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, paddingTop: topPad, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => router.push('/(tabs)')}
@@ -94,6 +122,69 @@ export default function ProductsScreen() {
           )}
         </View>
 
+        {/* Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {/* Always show "All" first */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor: selectedFilter === 'all' ? colors.primary : colors.card,
+                borderColor: selectedFilter === 'all' ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setSelectedFilter('all');
+            }}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                { color: selectedFilter === 'all' ? '#fff' : colors.foreground },
+              ]}
+            >
+              All
+            </Text>
+          </TouchableOpacity>
+
+          {/* Render dynamic categories */}
+          {!categoriesLoading && categories.map((category) => {
+            const isActive = selectedFilter === category.id;
+            return (
+              <TouchableOpacity
+                key={category.id}
+                activeOpacity={0.7}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: isActive ? colors.primary : colors.card,
+                    borderColor: isActive ? colors.primary : colors.border,
+                  },
+                ]}
+                onPress={() => {
+                  if (Platform.OS !== 'web') Haptics.selectionAsync();
+                  setSelectedFilter(category.id);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    { color: isActive ? '#fff' : colors.foreground },
+                  ]}
+                >
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
         {/* Info Banner */}
         <View style={[styles.banner, { backgroundColor: colors.success + '1A' }]}>
           <Feather name="truck" size={18} color={colors.success} />
@@ -103,7 +194,11 @@ export default function ProductsScreen() {
         </View>
 
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-          {search.trim() ? `SEARCH RESULTS (${filteredProducts.length})` : 'AVAILABLE PRODUCTS'}
+          {categoryId 
+            ? `FILTERED BY CATEGORY (${filteredProducts.length})`
+            : search.trim() 
+            ? `SEARCH RESULTS (${filteredProducts.length})` 
+            : 'AVAILABLE PRODUCTS'}
         </Text>
 
         {filteredProducts.length === 0 && (
@@ -220,6 +315,20 @@ const styles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', height: '100%' },
+  filterScroll: {
+    paddingRight: 16,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontFamily: 'Inter_600SemiBold',
+  },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 8 },
   emptyTitle: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   emptyDesc: { fontSize: 13, fontFamily: 'Inter_400Regular' },

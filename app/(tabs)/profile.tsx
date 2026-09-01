@@ -19,14 +19,16 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import * as Haptics from 'expo-haptics';
 
-const MENU = [
-  { icon: 'clipboard', label: 'My Orders', route: '/(tabs)/orders' as const },
-  { icon: 'shopping-cart', label: 'My Cart', route: '/(tabs)/cart' as const },
-  { icon: 'heart', label: 'My Wishlist', route: '/wishlist' as const },
-  { icon: 'map-pin', label: 'Saved Addresses', route: '/saved-addresses' as const },
-  { icon: 'file-text', label: 'GST Details', route: '/gst-details' as const },
-  { icon: 'headphones', label: 'Need Design Assistance?', route: '/design-assistance' as const },
-  { icon: 'help-circle', label: 'Help & Support', route: '/help-support' as const },
+const MENU: Array<{ icon: string; label: string; route: string }> = [
+  { icon: 'clipboard', label: 'My Orders', route: '/(tabs)/orders' },
+  { icon: 'shopping-cart', label: 'My Cart', route: '/(tabs)/cart' },
+  { icon: 'heart', label: 'My Wishlist', route: '/wishlist' },
+  { icon: 'map-pin', label: 'Saved Addresses', route: '/saved-addresses' },
+  { icon: 'file-text', label: 'GST Details', route: '/gst-details' },
+  { icon: 'headphones', label: 'Need Design Assistance?', route: '/design-assistance' },
+  { icon: 'help-circle', label: 'Help & Support', route: '/help-support' },
+  { icon: 'shield', label: 'Privacy Policy', route: '/privacy-policy' },
+  { icon: 'file-text', label: 'Terms of Service', route: '/terms-of-service' },
 ];
 
 export default function ProfileScreen() {
@@ -34,7 +36,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { orders } = useCart();
   const { profile, updateProfile } = useAuth();
-  const topPad = Platform.OS === 'web' ? 67 : insets.top;
+  const topPad = Platform.OS === 'web' ? 8 : insets.top + 8;
 
   // Profile fields — sourced from Firestore via AuthContext, with sensible defaults.
   const name = profile?.name || 'Customer Name';
@@ -77,7 +79,7 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.headerBg, { backgroundColor: colors.primary, paddingTop: topPad + 12 }]}>
+      <View style={[styles.headerBg, { backgroundColor: colors.primary, paddingTop: topPad }]}>
         <View style={styles.avatarRow}>
           <View style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
             <Feather name="user" size={32} color="#fff" />
@@ -146,7 +148,7 @@ export default function ProfileScreen() {
         <View style={[styles.menuCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
           {MENU.map((item, i) => (
             <React.Fragment key={item.label}>
-              <TouchableOpacity activeOpacity={0.75} style={styles.menuItem} onPress={() => router.push(item.route)}>
+              <TouchableOpacity activeOpacity={0.75} style={styles.menuItem} onPress={() => router.push(item.route as any)}>
                 <View style={[styles.menuIcon, { backgroundColor: colors.secondary }]}>
                   <Feather name={item.icon as any} size={18} color={colors.primary} />
                 </View>

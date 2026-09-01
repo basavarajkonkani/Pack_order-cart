@@ -135,5 +135,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // printedPouchPricing/{docId} — singleton pricing doc for Printed
+    // Customized Pouches. Publicly readable so the Buyer App can fetch it
+    // without authentication (same pattern as products/categories/settings).
+    // Writable only by admins (Printed Pouch Pricing module).
+    match /printedPouchPricing/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

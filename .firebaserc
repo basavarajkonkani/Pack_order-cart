@@ -5,9 +5,14 @@
   "targets": {
     "shop-cart-flow": {
       "hosting": {
-        "app": ["shop-cart-flow"],
-        "admin": ["shop-cart-flow-admin"]
+        "admin": [
+          "shop-cart-flow-admin"
+        ],
+        "app": [
+          "shop-cart-flow"
+        ]
       }
     }
-  }
+  },
+  "etags": {}
 }
