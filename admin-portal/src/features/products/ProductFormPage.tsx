@@ -61,6 +61,7 @@ export default function ProductFormPage() {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'sizes' });
+  const { fields: colorFields, append: appendColor, remove: removeColor } = useFieldArray({ control, name: 'colors' });
 
   useEffect(() => {
     if (existing) {
@@ -78,6 +79,7 @@ export default function ProductFormPage() {
         inStock: existing.inStock,
         visible: existing.visible !== false,
         sizes: existing.sizes?.length ? existing.sizes : emptyProductForm.sizes,
+        colors: existing.colors ?? [],
       });
     }
   }, [existing, reset]);
@@ -116,6 +118,7 @@ export default function ProductFormPage() {
       const payload = {
         ...values,
         categoryId: values.categoryId || undefined,
+        colors: values.colors && values.colors.length > 0 ? values.colors : undefined,
         imageUrl,
         videoUrl,
       };
@@ -416,6 +419,70 @@ export default function ProductFormPage() {
               </Grid>
             </Box>
           ))}
+        </Paper>
+
+        <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', mb: 2.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+              Available Colors
+            </Typography>
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => appendColor({ name: '', hexCode: '', available: true })}
+            >
+              Add Color
+            </Button>
+          </Box>
+          {colorFields.length === 0 ? (
+            <Alert severity="info">No colors defined. This product will be displayed without color variants.</Alert>
+          ) : (
+            colorFields.map((field, index) => (
+              <Box key={field.id}>
+                {index > 0 && <Divider sx={{ my: 2 }} />}
+                <Grid container spacing={2} sx={{ alignItems: 'flex-start' }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
+                    <TextField
+                      {...register(`colors.${index}.name`)}
+                      label="Color Name"
+                      fullWidth
+                      size="small"
+                      error={!!errors.colors?.[index]?.name}
+                      helperText={errors.colors?.[index]?.name?.message}
+                      placeholder="e.g., Red, Blue, White"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 8, sm: 3 }}>
+                    <TextField
+                      {...register(`colors.${index}.hexCode`)}
+                      label="Hex Code (Optional)"
+                      fullWidth
+                      size="small"
+                      error={!!errors.colors?.[index]?.hexCode}
+                      placeholder="#FF0000"
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 3, sm: 3 }}>
+                    <Controller
+                      control={control}
+                      name={`colors.${index}.available`}
+                      render={({ field }) => (
+                        <FormControlLabel
+                          control={<Switch checked={field.value} onChange={(e) => field.onChange(e.target.checked)} />}
+                          label="Available"
+                        />
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 1, sm: 2 }}>
+                    <IconButton onClick={() => removeColor(index)} color="error">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              </Box>
+            ))
+          )}
         </Paper>
 
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>

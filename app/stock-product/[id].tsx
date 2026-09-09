@@ -32,12 +32,18 @@ export default function StockProductDetailScreen() {
   const [selectedSize, setSelectedSize] = useState<StockSize | undefined>(undefined);
   const [quantity, setQuantity] = useState<number>(100);
   const [quantityText, setQuantityText] = useState<string>('100');
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (product && !selectedSize) {
       setSelectedSize(product.sizes[0]);
       setQuantity(product.moq);
       setQuantityText(String(product.moq));
+      // Auto-select first available color if colors exist
+      const availableColors = (product as any).colors?.filter((c: any) => c.available) || [];
+      if (availableColors.length > 0) {
+        setSelectedColor(availableColors[0].name);
+      }
     }
   }, [product, selectedSize]);
 
@@ -105,6 +111,7 @@ export default function StockProductDetailScreen() {
       productId: product.id,
       productName: product.name,
       productImage: product.image,
+      productColor: selectedColor, // Include selected color
       sizeCode: selectedSize.code,
       sizeLabel: selectedSize.label,
       sizeWeight: selectedSize.weight,
@@ -168,6 +175,58 @@ export default function StockProductDetailScreen() {
             </View>
           </View>
         </View>
+
+        {/* Available Colors */}
+        {(product as any).colors && (product as any).colors.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Available Colors</Text>
+            <View style={styles.colorList}>
+              {(product as any).colors
+                .filter((color: any) => color.available)
+                .map((color: any) => {
+                  const active = selectedColor === color.name;
+                  return (
+                    <TouchableOpacity
+                      key={color.name}
+                      activeOpacity={0.7}
+                      style={[
+                        styles.colorChip,
+                        {
+                          backgroundColor: active ? colors.primary + '15' : colors.card,
+                          borderColor: active ? colors.primary : colors.border,
+                          borderRadius: colors.radius,
+                        },
+                      ]}
+                      onPress={() => {
+                        if (Platform.OS !== 'web') Haptics.selectionAsync();
+                        setSelectedColor(color.name);
+                      }}
+                    >
+                      {color.hexCode && (
+                        <View
+                          style={[
+                            styles.colorDot,
+                            {
+                              backgroundColor: color.hexCode,
+                              borderColor: colors.border,
+                            },
+                          ]}
+                        />
+                      )}
+                      <Text style={[styles.colorName, { color: active ? colors.primary : colors.foreground }]}>
+                        {color.name}
+                      </Text>
+                      {active && <Feather name="check-circle" size={16} color={colors.primary} />}
+                    </TouchableOpacity>
+                  );
+                })}
+            </View>
+            <Text style={[styles.colorNote, { color: colors.mutedForeground }]}>
+              {(product as any).colors.filter((c: any) => !c.available).length > 0 &&
+                `${(product as any).colors.filter((c: any) => !c.available).length} color(s) currently unavailable`}
+            </Text>
+          </View>
+        )}
 
         {/* Select Size */}
         <View style={styles.section}>
@@ -341,6 +400,23 @@ const styles = StyleSheet.create({
   tagBadgeText: { fontSize: 11, fontFamily: 'Inter_600SemiBold' },
   section: { gap: 10 },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold' },
+  colorList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  colorChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+  },
+  colorDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  colorName: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
+  colorNote: { fontSize: 12, fontFamily: 'Inter_400Regular', fontStyle: 'italic', marginTop: 4 },
   sizeList: { gap: 10 },
   sizeCard: { flexDirection: 'row', alignItems: 'center', padding: 14, borderWidth: 1.5, gap: 10 },
   sizeTextBlock: { flex: 1, gap: 2 },

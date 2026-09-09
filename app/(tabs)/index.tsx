@@ -14,6 +14,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { AppCategory } from '@/lib/categories';
 import { useCategories } from '@/hooks/useCategories';
 import { CategorySkeleton } from '@/components/CategorySkeleton';
@@ -82,6 +83,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { cart } = useCart();
+  const { profile } = useAuth();
   const topPad = Platform.OS === 'web' ? 8 : insets.top + 8;
   const [search, setSearch] = useState('');
   
@@ -142,7 +144,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.headerContent}>
-          <Text style={styles.greeting}>Hello, Customer</Text>
+          <Text style={styles.greeting}>Hello, {profile?.name || 'Customer'}</Text>
           <Text style={styles.subGreeting}>Good to see you again!</Text>
         </View>
       </View>

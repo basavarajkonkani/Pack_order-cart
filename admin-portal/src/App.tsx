@@ -12,6 +12,7 @@ import CategoriesListPage from '@/features/categories/CategoriesListPage';
 import PackagingRequestsListPage from '@/features/packaging/PackagingRequestsListPage';
 import NotificationsPage from '@/features/notifications/NotificationsPage';
 import SettingsPage from '@/features/settings/SettingsPage';
+import BusinessSettingsPage from '@/features/business/BusinessSettingsPage';
 import PrintedPouchPricingPage from '@/features/printedPricing/PrintedPouchPricingPage';
 import ComingSoon from '@/components/ComingSoon';
 
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/printed-pouch-pricing" element={<PrintedPouchPricingPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/business-settings" element={<BusinessSettingsPage />} />
         </Route>
       </Route>
 

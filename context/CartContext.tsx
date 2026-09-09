@@ -5,6 +5,7 @@ import { collection, doc, onSnapshot, orderBy, query, setDoc, where } from 'fire
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { STOCK_PRODUCTS } from '@/constants/stockProducts';
+import { fetchBusinessSettings } from '@/lib/businessSettings';
 
 export type PouchType = 'plain' | 'printed' | 'kraft';
 export type WindowOption = 'with' | 'without';
@@ -48,6 +49,7 @@ export interface CartItem {
   productId?: string;
   productName?: string;
   productImage?: ImageSourcePropType;
+  productColor?: string; // Selected color for products with color variants
   sizeCode?: string;
   sizeLabel?: string;
   sizeWeight?: string;
@@ -59,6 +61,12 @@ export interface Order {
   orderId: string;
   items: CartItem[];
   total: number;
+  subtotal: number;
+  gstPercentage: number;
+  gstAmount: number;
+  totalAmount: number;
+  gstin: string;
+  businessName: string;
   address: string;
   gstNumber: string;
   paymentMethod: string;
@@ -206,12 +214,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const cartTotal = cart.reduce((sum, i) => sum + i.price, 0);
 
-  const placeOrder = useCallback((address: string, gstNumber: string, paymentMethod: string): Order => {
+  const placeOrder = useCallback(async (address: string, gstNumber: string, paymentMethod: string): Promise<Order> => {
+    // Fetch business settings for GST calculation
+    const businessSettings = await fetchBusinessSettings();
+    const subtotal = cartTotal;
+    const gstPercentage = businessSettings.gstPercentage;
+    const gstAmount = Math.round((subtotal * gstPercentage) / 100);
+    const totalAmount = subtotal + gstAmount;
+
     const order: Order = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       orderId: 'PCH' + Math.floor(1000 + Math.random() * 9000),
       items: [...cart],
-      total: cartTotal,
+      total: cartTotal, // Keep for backward compatibility
+      subtotal,
+      gstPercentage,
+      gstAmount,
+      totalAmount,
+      gstin: businessSettings.gstin,
+      businessName: businessSettings.businessName,
       address,
       gstNumber,
       paymentMethod,
@@ -289,7 +310,9 @@ export function getItemTitle(item: CartItem): string {
 /** Subtitle/spec line(s) to display for any cart/order item, custom or ready-stock. */
 export function getItemSpec(item: CartItem): string {
   if (item.kind === 'stock') {
-    return [item.sizeLabel, item.sizeWeight].filter(Boolean).join(' · ');
+    const parts = [item.sizeLabel, item.sizeWeight];
+    if (item.productColor) parts.unshift(item.productColor);
+    return parts.filter(Boolean).join(' · ');
   }
   const windowText = item.windowOption === 'with' ? 'With Window' : 'No Window';
   const materialText = !hasMaterialStep(item.pouchType) || !item.materialType

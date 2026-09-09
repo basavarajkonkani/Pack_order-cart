@@ -1,10 +1,15 @@
-import React from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, Share } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCart, getItemTitle, getItemSpec } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { generateInvoiceHTML, generateInvoiceText } from '@/lib/invoiceGenerator';
+import { fetchBusinessSettings } from '@/lib/businessSettings';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const TIMELINE = [
   { key: 'confirmed', label: 'Order Confirmed', icon: 'check-circle' },
@@ -29,11 +34,75 @@ export default function OrderTrackingScreen() {
   const insets = useSafeAreaInsets();
   const { orderId, orderKey } = useLocalSearchParams<{ orderId: string; orderKey: string }>();
   const { orders } = useCart();
+  const { profile } = useAuth();
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
 
   const order = orders.find((o) => o.id === orderKey) ?? orders.find((o) => o.orderId === orderId);
   const currentStep = TIMELINE.findIndex((t) => t.key === (order?.status ?? 'confirmed'));
+
+  const handleViewInvoice = async () => {
+    if (!order) return;
+    
+    setLoadingInvoice(true);
+    try {
+      const businessSettings = await fetchBusinessSettings();
+      const invoiceHTML = await generateInvoiceHTML({
+        order,
+        businessSettings,
+        customerName: profile?.name,
+        customerEmail: profile?.email,
+        customerPhone: profile?.phone,
+      });
+
+      if (Platform.OS === 'web') {
+        // For web, open in new window
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(invoiceHTML);
+          printWindow.document.close();
+        }
+      } else {
+        // For mobile, use expo-print to generate PDF
+        const { uri } = await Print.printToFileAsync({ html: invoiceHTML });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Invoice ${order.orderId}`,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('Invoice Generated', 'Invoice has been saved but sharing is not available on this device.');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate invoice:', error);
+      Alert.alert('Error', 'Failed to generate invoice. Please try again.');
+    } finally {
+      setLoadingInvoice(false);
+    }
+  };
+
+  const handleShareInvoice = async () => {
+    if (!order) return;
+    
+    try {
+      const businessSettings = await fetchBusinessSettings();
+      const invoiceText = generateInvoiceText({
+        order,
+        businessSettings,
+        customerName: profile?.name,
+      });
+
+      await Share.share({
+        message: invoiceText,
+        title: `Invoice ${order.orderId}`,
+      });
+    } catch (error) {
+      console.error('Failed to share invoice:', error);
+    }
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -120,9 +189,53 @@ export default function OrderTrackingScreen() {
               </View>
             ))}
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total</Text>
-              <Text style={[styles.totalValue, { color: colors.primary }]}>₹{order.total.toLocaleString('en-IN')}</Text>
+            {order.subtotal && order.gstAmount && order.totalAmount ? (
+              <>
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>Subtotal</Text>
+                  <Text style={[styles.summaryValue, { color: colors.foreground }]}>₹{order.subtotal.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>GST ({order.gstPercentage}%)</Text>
+                  <Text style={[styles.summaryValue, { color: colors.foreground }]}>₹{order.gstAmount.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <View style={styles.totalRow}>
+                  <Text style={[styles.totalLabel, { color: colors.foreground }]}>Grand Total</Text>
+                  <Text style={[styles.totalValue, { color: colors.primary }]}>₹{order.totalAmount.toLocaleString('en-IN')}</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total</Text>
+                <Text style={[styles.totalValue, { color: colors.primary }]}>₹{order.total.toLocaleString('en-IN')}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Invoice Actions */}
+        {order && (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>GST Invoice</Text>
+            <View style={styles.invoiceActions}>
+              <TouchableOpacity
+                activeOpacity={0.78}
+                style={[styles.invoiceBtn, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+                onPress={handleViewInvoice}
+                disabled={loadingInvoice}
+              >
+                <Feather name={loadingInvoice ? 'loader' : 'file-text'} size={18} color="#fff" />
+                <Text style={styles.invoiceBtnText}>{loadingInvoice ? 'Generating...' : 'View Invoice'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.78}
+                style={[styles.invoiceBtn, styles.invoiceBtnSecondary, { borderColor: colors.border, borderRadius: colors.radius, backgroundColor: colors.card }]}
+                onPress={handleShareInvoice}
+              >
+                <Feather name="share-2" size={18} color={colors.primary} />
+                <Text style={[styles.invoiceBtnText, { color: colors.primary }]}>Share Invoice</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -170,9 +283,16 @@ const styles = StyleSheet.create({
   itemSpec: { fontSize: 12, fontFamily: 'Inter_400Regular' },
   itemPrice: { fontSize: 14, fontFamily: 'Inter_700Bold' },
   divider: { height: 1 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryLabel: { fontSize: 13, fontFamily: 'Inter_400Regular' },
+  summaryValue: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   totalLabel: { fontSize: 15, fontFamily: 'Inter_700Bold' },
   totalValue: { fontSize: 18, fontFamily: 'Inter_700Bold' },
+  invoiceActions: { flexDirection: 'row', gap: 10 },
+  invoiceBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14 },
+  invoiceBtnSecondary: { borderWidth: 1 },
+  invoiceBtnText: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#fff' },
   supportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 14, borderWidth: 1 },
   supportText: { fontSize: 14, fontFamily: 'Inter_600SemiBold' },
 });

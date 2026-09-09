@@ -17,6 +17,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import * as Haptics from 'expo-haptics';
+import { fetchBusinessSettings } from '@/lib/businessSettings';
 
 type PaymentMethod = 'upi' | 'bank' | 'credit';
 
@@ -35,10 +36,19 @@ export default function CheckoutScreen() {
   const bottomPad = Platform.OS === 'web' ? 34 : insets.bottom;
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
 
+  const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [payment, setPayment] = useState<PaymentMethod>('upi');
   const [loading, setLoading] = useState(false);
+  const [gstPercentage, setGstPercentage] = useState(18);
+
+  // Load GST percentage from business settings
+  useEffect(() => {
+    fetchBusinessSettings().then(settings => {
+      setGstPercentage(settings.gstPercentage);
+    });
+  }, []);
 
   // Checkout requires a verified mobile number first.
   useEffect(() => {
@@ -47,16 +57,21 @@ export default function CheckoutScreen() {
     }
   }, [phone]);
 
-  // Delivery address starts blank so the buyer always enters/confirms it
-  // themselves; only GST details are prefilled from their saved profile.
+  // Prefill name and GST details from saved profile if available.
   useEffect(() => {
+    if (profile?.name) setName(profile.name);
     if (profile?.gstNumber) setGstNumber(profile.gstNumber);
-  }, [profile?.gstNumber]);
+  }, [profile?.name, profile?.gstNumber]);
 
   const { addAddress, updateProfile } = useAuth();
 
+  // Calculate GST breakdown
+  const subtotal = cartTotal;
+  const gstAmount = Math.round((subtotal * gstPercentage) / 100);
+  const totalAmount = subtotal + gstAmount;
+
   const handlePlaceOrder = async () => {
-    if (!address) return;
+    if (!address || !name.trim()) return;
     setLoading(true);
     if (Platform.OS !== 'web') {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -64,6 +79,9 @@ export default function CheckoutScreen() {
 
     // Persist buyer-entered details back to their profile so future checkouts
     // (and the Saved Addresses / GST Details screens) reflect real data.
+    if (name.trim() && name !== profile?.name) {
+      await updateProfile({ name: name.trim() });
+    }
     if (!defaultAddress && address) {
       const [line1 = '', rest = ''] = address.split('\n');
       const [cityState = '', pincode = ''] = rest.split('–').map((s) => s.trim());
@@ -74,7 +92,7 @@ export default function CheckoutScreen() {
       await updateProfile({ gstNumber });
     }
 
-    const order = placeOrder(address, gstNumber, payment);
+    const order = await placeOrder(address, gstNumber, payment);
     setLoading(false);
     router.replace({ pathname: '/order-success', params: { orderId: order.orderId, orderKey: order.id } });
   };
@@ -111,6 +129,23 @@ export default function CheckoutScreen() {
             </Text>
           </View>
         )}
+
+        {/* Customer Details */}
+        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+          <View style={styles.sectionHeader}>
+            <Feather name="user" size={16} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Customer Details</Text>
+          </View>
+          <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>Full Name</Text>
+          <TextInput
+            style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter your full name"
+            placeholderTextColor={colors.mutedForeground}
+            autoCapitalize="words"
+          />
+        </View>
 
         {/* Delivery Address */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
@@ -206,17 +241,25 @@ export default function CheckoutScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Order Summary</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>{cart.length} item{cart.length !== 1 ? 's' : ''}</Text>
-            <Text style={[styles.summaryValue, { color: colors.foreground }]}>₹{cartTotal.toLocaleString('en-IN')}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>
+              {cart.length} item{cart.length !== 1 ? 's' : ''} (Subtotal)
+            </Text>
+            <Text style={[styles.summaryValue, { color: colors.foreground }]}>₹{subtotal.toLocaleString('en-IN')}</Text>
           </View>
           <View style={styles.summaryRow}>
-            <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>GST</Text>
-            <Text style={[styles.summaryValue, { color: colors.mutedForeground }]}>As applicable</Text>
+            <Text style={[styles.summaryLabel, { color: colors.mutedForeground }]}>GST ({gstPercentage}%)</Text>
+            <Text style={[styles.summaryValue, { color: colors.foreground }]}>₹{gstAmount.toLocaleString('en-IN')}</Text>
           </View>
           <View style={[styles.hdivider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryRow}>
-            <Text style={[styles.totalLabel, { color: colors.foreground }]}>Total Amount</Text>
-            <Text style={[styles.totalValue, { color: colors.primary }]}>₹{cartTotal.toLocaleString('en-IN')}</Text>
+            <Text style={[styles.totalLabel, { color: colors.foreground }]}>Grand Total</Text>
+            <Text style={[styles.totalValue, { color: colors.primary }]}>₹{totalAmount.toLocaleString('en-IN')}</Text>
+          </View>
+          <View style={[styles.gstNote, { backgroundColor: colors.secondary, borderRadius: 6 }]}>
+            <Feather name="info" size={12} color={colors.mutedForeground} />
+            <Text style={[styles.gstNoteText, { color: colors.mutedForeground }]}>
+              GST invoice will be generated for this order
+            </Text>
           </View>
         </View>
       </ScrollView>
@@ -226,7 +269,7 @@ export default function CheckoutScreen() {
           label="Place Order"
           onPress={handlePlaceOrder}
           loading={loading}
-          disabled={!address || cart.length === 0}
+          disabled={!name.trim() || !address || cart.length === 0}
           variant="accent"
         />
       </View>
@@ -262,5 +305,7 @@ const styles = StyleSheet.create({
   hdivider: { height: 1 },
   totalLabel: { fontSize: 15, fontFamily: 'Inter_700Bold' },
   totalValue: { fontSize: 20, fontFamily: 'Inter_700Bold' },
+  gstNote: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, marginTop: 4 },
+  gstNoteText: { fontSize: 11, fontFamily: 'Inter_400Regular' },
   footer: { padding: 16, borderTopWidth: 1 },
 });

@@ -18,6 +18,12 @@ export interface StockSize {
   pricePerPiece: number;
 }
 
+export interface ProductColor {
+  name: string;
+  hexCode?: string; // Optional hex color code for display
+  available: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -34,11 +40,14 @@ export interface Product {
   moq: number;
   inStock: boolean;
   sizes: StockSize[];
+  /** Available color variants for this product */
+  colors?: ProductColor[];
   /** Category id, references categories/{categoryId}. Optional for legacy docs. */
   categoryId?: string;
   /** Admin-controlled visibility toggle. Hidden products are excluded from the Buyer App catalog. */
   visible?: boolean;
   discountPercent?: number;
+  sortOrder?: number;
   createdAt?: unknown;
   updatedAt?: unknown;
 }
@@ -91,6 +100,7 @@ export interface OrderItem {
   artworkSize?: number;
   productId?: string;
   productName?: string;
+  productColor?: string; // Selected color for products with color variants
   sizeCode?: string;
   sizeLabel?: string;
   sizeWeight?: string;
@@ -103,6 +113,12 @@ export interface Order {
   userId: string;
   items: OrderItem[];
   total: number;
+  subtotal?: number;
+  gstPercentage?: number;
+  gstAmount?: number;
+  totalAmount?: number;
+  gstin?: string;
+  businessName?: string;
   address: string;
   gstNumber: string;
   paymentMethod: string;
@@ -196,6 +212,22 @@ export interface StoreSettings {
     bankTransfer: boolean;
     creditTerms: boolean;
   };
+  updatedAt?: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// business_settings/info — singleton doc for GST business details
+// ---------------------------------------------------------------------------
+
+export interface BusinessSettings {
+  gstin: string;
+  businessName: string;
+  legalName: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  gstPercentage: number;
   updatedAt?: unknown;
 }
 

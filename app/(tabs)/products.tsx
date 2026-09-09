@@ -37,20 +37,20 @@ export default function ProductsScreen() {
   const filteredProducts = useMemo(() => {
     let filtered = products;
     
-    // Filter by selected category filter
-    if (selectedFilter !== 'all') {
-      filtered = filtered.filter((p) => {
-        // Check if product has a categoryId field that matches the selected filter
-        const productCategoryId = (p as any).categoryId;
-        return productCategoryId === selectedFilter;
-      });
-    }
-    
     // Filter by URL categoryId if provided (takes precedence)
     if (categoryId) {
       filtered = filtered.filter((p) => {
         const productCategoryId = (p as any).categoryId;
         return productCategoryId === categoryId;
+      });
+    }
+    // Filter by selected category filter (only if not 'all' and no URL categoryId)
+    else if (selectedFilter !== 'all') {
+      filtered = filtered.filter((p) => {
+        const productCategoryId = (p as any).categoryId;
+        // If product has no categoryId, show it in all filters (backward compatibility)
+        // If product has categoryId, only show if it matches the filter
+        return !productCategoryId || productCategoryId === selectedFilter;
       });
     }
     
@@ -64,6 +64,14 @@ export default function ProductsScreen() {
         (p.sizes ?? []).some((s) => s.label.toLowerCase().includes(query) || s.code.toLowerCase().includes(query))
       );
     }
+    
+    // Sort by sortOrder field (lower numbers first), then by product name
+    filtered.sort((a, b) => {
+      const orderA = (a as any).sortOrder ?? 999;
+      const orderB = (b as any).sortOrder ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.name.localeCompare(b.name);
+    });
     
     return filtered;
   }, [search, products, categoryId, selectedFilter]);
@@ -254,6 +262,16 @@ export default function ProductsScreen() {
                   {p.desc}
                 </Text>
 
+                {/* Show available colors if product has colors */}
+                {(p as any).colors && (p as any).colors.length > 0 && (
+                  <View style={styles.colorsRow}>
+                    <Feather name="circle" size={12} color={colors.mutedForeground} />
+                    <Text style={[styles.colorsText, { color: colors.mutedForeground }]}>
+                      {(p as any).colors.filter((c: any) => c.available).length} colors available
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.metaRow}>
                   <View style={styles.metaItem}>
                     <Feather name="maximize-2" size={12} color={colors.mutedForeground} />
@@ -348,6 +366,8 @@ const styles = StyleSheet.create({
   productName: { fontSize: 16, fontFamily: 'Inter_700Bold', flex: 1 },
   price: { fontSize: 16, fontFamily: 'Inter_700Bold' },
   desc: { fontSize: 12.5, fontFamily: 'Inter_400Regular', lineHeight: 18 },
+  colorsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  colorsText: { fontSize: 12, fontFamily: 'Inter_500Medium' },
   metaRow: { flexDirection: 'row', gap: 16 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontSize: 12, fontFamily: 'Inter_500Medium' },

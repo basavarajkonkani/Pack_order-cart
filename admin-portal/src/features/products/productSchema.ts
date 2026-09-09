@@ -7,6 +7,12 @@ export const stockSizeSchema = z.object({
   pricePerPiece: z.coerce.number().positive('Price must be greater than 0'),
 });
 
+export const productColorSchema = z.object({
+  name: z.string().trim().min(1, 'Color name is required'),
+  hexCode: z.string().trim().optional(),
+  available: z.boolean(),
+});
+
 export const productFormSchema = z.object({
   name: z.string().trim().min(2, 'Product name is required'),
   desc: z.string().trim().min(10, 'Description should be at least 10 characters'),
@@ -21,6 +27,7 @@ export const productFormSchema = z.object({
   inStock: z.boolean(),
   visible: z.boolean(),
   sizes: z.array(stockSizeSchema).min(1, 'Add at least one size/price tier'),
+  colors: z.array(productColorSchema).optional(),
 });
 
 /** Raw shape as entered in form fields (before zod's coerce.number() runs). */
@@ -42,4 +49,5 @@ export const emptyProductForm: ProductFormInput = {
   inStock: true,
   visible: true,
   sizes: [{ code: '', label: '', weight: '', pricePerPiece: 0 }],
+  colors: [],
 };
