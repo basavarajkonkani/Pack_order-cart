@@ -21,28 +21,34 @@ const db = admin.firestore();
 // Assign products to specific categories based on their actual type
 const CATEGORY_RULES = [
   {
+    categoryId: 'container',
+    keywords: ['container', 'rectangular container'],
+    description: 'Food containers',
+    priority: 1, // Check this first
+  },
+  {
     categoryId: 'bopp-bags',
     keywords: ['bopp'],
     description: 'BOPP bags only',
-    priority: 1, // Check this first
+    priority: 2,
   },
   {
     categoryId: 'kraft-pouches',
     keywords: ['kraft'],
     description: 'Kraft pouches only',
-    priority: 2,
+    priority: 3,
   },
   {
     categoryId: 'standup-pouches',
-    keywords: ['standy', 'stand-up', 'standup', 'gold', 'silver', 'milky', 'batter'],
-    description: 'Stand-up pouches (gold, silver, milky, etc.)',
-    priority: 3,
+    keywords: ['standy', 'stand-up', 'standup', 'gold', 'silver', 'milky', 'batter', 'matt', 'center', 'seal'],
+    description: 'Stand-up pouches (gold, silver, milky, matt, etc.)',
+    priority: 4,
   },
   {
     categoryId: 'printed',
     keywords: ['custom', 'printed'],
     description: 'Custom printed pouches',
-    priority: 4,
+    priority: 5,
   },
 ];
 

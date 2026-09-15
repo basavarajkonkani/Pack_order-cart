@@ -27,25 +27,32 @@ const CATEGORIES = [
     sortOrder: 0,
   },
   {
-    id: 'standup-pouches',
-    name: 'Standup',
-    description: 'Stand-up pouches',
+    id: 'container',
+    name: 'Container',
+    description: 'Premium-quality containers',
     enabled: true,
     sortOrder: 1,
+  },
+  {
+    id: 'standup-pouches',
+    name: 'Standup Pouch',
+    description: 'Stand-up pouches',
+    enabled: true,
+    sortOrder: 2,
   },
   {
     id: 'kraft-pouches',
     name: 'Kraft',
     description: 'Natural & Premium kraft pouches',
     enabled: true,
-    sortOrder: 2,
+    sortOrder: 3,
   },
   {
     id: 'printed',
     name: 'Printed',
     description: 'Custom Packaging',
     enabled: true,
-    sortOrder: 3,
+    sortOrder: 4,
   },
 ];
 

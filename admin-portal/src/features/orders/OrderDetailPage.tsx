@@ -150,6 +150,45 @@ function OrderDetailContent({ order, onBack }: OrderDetailContentProps) {
 
           <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', mt: 2.5 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+              Customer Information
+            </Typography>
+            <Grid container spacing={1.5}>
+              {order.customerName && (
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Customer Name
+                  </Typography>
+                  <Typography variant="body2">{order.customerName}</Typography>
+                </Grid>
+              )}
+              {order.customerPhone && (
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Phone Number
+                  </Typography>
+                  <Typography variant="body2">{order.customerPhone}</Typography>
+                </Grid>
+              )}
+              {order.customerEmail && (
+                <Grid size={{ xs: 6 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Email
+                  </Typography>
+                  <Typography variant="body2">{order.customerEmail}</Typography>
+                </Grid>
+              )}
+              {!order.customerName && !order.customerPhone && !order.customerEmail && (
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    Customer information not available (legacy order)
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', mt: 2.5 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
               Shipping & Billing
             </Typography>
             <Grid container spacing={1.5}>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Image,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Dimensions,
 } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather, Ionicons } from '@expo/vector-icons';
@@ -34,10 +36,46 @@ const LOCAL_IMAGES: Record<string, ReturnType<typeof require>> = {
 };
 const PLACEHOLDER_IMAGE = require('@/assets/images/logo.png');
 
+// Banner carousel images
+const BANNERS = [
+  require('@/assets/images/Home Banner.png'),
+  require('@/assets/images/Home Banner 2.png'),
+];
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Calculate heights based on actual image aspect ratios to prevent cropping
+// Home banners are 1536x1024 (3:2 ratio)
+const BANNER_HEIGHT = Math.round((SCREEN_WIDTH - 32) * (2/3)); // Maintain 3:2 aspect ratio
+// Custom banner is 1774x887 (2:1 ratio)
+const CUSTOM_BANNER_HEIGHT = Math.round((SCREEN_WIDTH - 32) * (1/2)); // Maintain 2:1 aspect ratio
+
 const FEATURES = [
   { icon: 'shield', text: 'Quality Assured', sub: 'ISO certified materials' },
   { icon: 'truck', text: 'Fast Delivery', sub: '12-15 business days' },
   { icon: 'edit-2', text: 'Custom Print', sub: 'Full colour printing' },
+];
+
+const VALUE_PROPS = [
+  {
+    icon: 'star',
+    title: 'Quality Assurance',
+    desc: 'Our rigorous quality control processes ensure that every product meets the highest standards of performance and reliability.',
+  },
+  {
+    icon: 'check-circle',
+    title: 'Innovative Designs',
+    desc: 'We stay ahead of industry trends with innovative packaging designs that enhance product appeal and functionality.',
+  },
+  {
+    icon: 'zap',
+    title: 'Competitive Pricing',
+    desc: 'We offer competitive pricing without compromising on quality, making premium packaging solutions accessible to businesses of all sizes.',
+  },
+  {
+    icon: 'check-square',
+    title: 'Fast Turnaround',
+    desc: 'With our efficient production capabilities, we ensure timely delivery of your orders, helping you meet your deadlines with ease.',
+  },
 ];
 
 /**
@@ -54,14 +92,17 @@ function getCategoryTarget(cat: AppCategory) {
     cat.id === 'bopp-bags' ||
     cat.id === 'standup-pouches' ||
     cat.id === 'kraft-pouches' ||
+    cat.id === 'container' ||
     lowerName.includes('bopp') || 
     lowerName.includes('standup') || 
     lowerName.includes('standy') || 
     lowerName.includes('kraft') || 
+    lowerName.includes('container') ||
     lowerName.includes('center') ||
     lowerName.includes('seal') ||
     lowerDesc.includes('stock') ||
-    lowerDesc.includes('ready');
+    lowerDesc.includes('ready') ||
+    lowerDesc.includes('container');
   
   if (isStockCategory) {
     return () => router.push({ 
@@ -87,8 +128,30 @@ export default function HomeScreen() {
   const topPad = Platform.OS === 'web' ? 8 : insets.top + 8;
   const [search, setSearch] = useState('');
   
+  // Banner carousel state
+  const [activeBanner, setActiveBanner] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  
   // Use React Query for cached category fetching
   const { data: categories = [], isLoading: catsLoading } = useCategories();
+
+  // Auto-scroll banners every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveBanner((prev) => {
+        const next = (prev + 1) % BANNERS.length;
+        if (scrollViewRef.current && Platform.OS !== 'web') {
+          scrollViewRef.current.scrollTo({
+            x: next * (SCREEN_WIDTH - 32),
+            animated: true,
+          });
+        }
+        return next;
+      });
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Prefetch category images in the background for faster rendering
   useEffect(() => {
@@ -151,7 +214,7 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: 100 }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Search Bar */}
@@ -177,28 +240,56 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Hero Banner */}
-        <TouchableOpacity
-          activeOpacity={0.92}
-          style={[styles.heroBanner, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/(tabs)/products')}
-        >
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTag}>PREMIUM PACKAGING</Text>
-            <Text style={styles.heroTitle}>For Every Product</Text>
-            <Text style={styles.heroSub}>High Quality · Customizable · Reliable</Text>
-            <View style={[styles.exploreBtn, { backgroundColor: colors.accent }]}>
-              <Text style={styles.exploreBtnText}>Explore Now</Text>
-            </View>
+        {/* Banner Carousel */}
+        <View style={styles.bannerSection}>
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => {
+              const slideIndex = Math.round(
+                event.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 32)
+              );
+              setActiveBanner(slideIndex);
+            }}
+            decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH - 32}
+            snapToAlignment="center"
+            contentContainerStyle={styles.bannerScroll}
+          >
+            {BANNERS.map((banner, index) => (
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.9}
+                style={styles.bannerSlide}
+                onPress={() => router.push('/(tabs)/products')}
+              >
+                <Image
+                  source={banner}
+                  style={styles.bannerImage}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {/* Pagination Dots */}
+          <View style={styles.paginationDots}>
+            {BANNERS.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: activeBanner === index ? colors.primary : colors.border,
+                    width: activeBanner === index ? 24 : 8,
+                  },
+                ]}
+              />
+            ))}
           </View>
-          <View style={styles.heroImageContainer}>
-            <Image
-              source={require('@/assets/images/banner-3.jpg')}
-              style={styles.heroImage}
-              resizeMode="cover"
-            />
-          </View>
-        </TouchableOpacity>
+        </View>
 
         {/* Shop by Category */}
         <View style={styles.section}>
@@ -253,43 +344,117 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* Feature Highlights */}
+        {/* Custom Printed Banner - Below Categories */}
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={styles.customBanner}
+          onPress={() => router.push('/(tabs)/products')}
+        >
+          <Image
+            source={require('@/assets/images/custom printed banner.png')}
+            style={styles.customBannerImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+
+        {/* Value Propositions */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Why Choose Us</Text>
-          <View style={styles.features}>
-            {FEATURES.map((f) => (
+          <View style={styles.valuePropsGrid}>
+            {VALUE_PROPS.map((prop) => (
               <View
-                key={f.text}
+                key={prop.title}
                 style={[
-                  styles.featureCard,
+                  styles.valuePropCard,
                   { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
                 ]}
               >
-                <View style={[styles.featureIcon, { backgroundColor: colors.secondary }]}>
-                  <Feather name={f.icon as any} size={20} color={colors.primary} />
+                <View style={[styles.valuePropIcon, { backgroundColor: colors.primary + '15' }]}>
+                  <Feather name={prop.icon as any} size={24} color={colors.primary} />
                 </View>
-                <Text style={[styles.featureText, { color: colors.foreground }]}>{f.text}</Text>
-                <Text style={[styles.featureSub, { color: colors.mutedForeground }]}>{f.sub}</Text>
+                <Text style={[styles.valuePropTitle, { color: colors.foreground }]}>{prop.title}</Text>
+                <Text style={[styles.valuePropDesc, { color: colors.mutedForeground }]}>{prop.desc}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* Quick Order CTA */}
+        {/* About Section */}
+        <View style={[styles.aboutCard, { backgroundColor: colors.secondary, borderRadius: colors.radius }]}>
+          <Text style={[styles.aboutText, { color: colors.foreground }]}>
+            At PacMonk, we specialize in providing innovative, high-quality flexible packaging solutions tailored to meet the diverse needs of our clients. With a commitment to excellence and sustainability, we offer a wide range of products that cater to various industries, ensuring your products are protected, preserved, and presented in the best possible way.
+          </Text>
+        </View>
+
+        {/* Contact Section */}
+        <View style={styles.section}>
+          <View style={styles.contactGrid}>
+            {/* Home Online Shopping */}
+            <View style={[styles.contactCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+              <View style={[styles.contactIconWrap, { backgroundColor: colors.primary + '15' }]}>
+                <Feather name="shopping-bag" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.contactInfo}>
+                <Text style={[styles.contactLabel, { color: colors.mutedForeground }]}>Home Online Shopping</Text>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => Linking.openURL('tel:+919986291863')}
+                >
+                  <Text style={[styles.contactValue, { color: colors.foreground }]}>+91 9986291863</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Support Center */}
+            <View style={[styles.contactCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+              <View style={[styles.contactIconWrap, { backgroundColor: colors.accent + '15' }]}>
+                <Feather name="phone" size={24} color={colors.accent} />
+              </View>
+              <View style={styles.contactInfo}>
+                <Text style={[styles.contactLabel, { color: colors.mutedForeground }]}>Support Center</Text>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => Linking.openURL('tel:+919986291863')}
+                >
+                  <Text style={[styles.contactValue, { color: colors.foreground }]}>+91 9986291863</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Store Locations */}
+            <View style={[styles.contactCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+              <View style={[styles.contactIconWrap, { backgroundColor: colors.success + '15' }]}>
+                <Feather name="map-pin" size={24} color={colors.success} />
+              </View>
+              <View style={styles.contactInfo}>
+                <Text style={[styles.contactLabel, { color: colors.mutedForeground }]}>Store Locations</Text>
+                <Text style={[styles.contactValue, { color: colors.foreground }]}>View all 5 stores</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Floating Action Button - Always Visible */}
+      <View
+        style={[
+          styles.fabContainer,
+          {
+            // Position just above tab bar (56px tab height + insets + 8px small margin)
+            bottom: 56 + insets.bottom + 8,
+          },
+        ]}
+      >
         <TouchableOpacity
           activeOpacity={0.85}
-          style={[styles.ctaCard, { backgroundColor: colors.primary, borderRadius: colors.radius }]}
+          style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => router.push('/configure/pouch-type')}
+          accessibilityRole="button"
+          accessibilityLabel="Start New Order"
         >
-          <View>
-            <Text style={styles.ctaTitle}>Start a New Order</Text>
-            <Text style={styles.ctaSub}>Customise pouches in 5 easy steps</Text>
-          </View>
-          <View style={[styles.ctaArrow, { backgroundColor: colors.accent }]}>
-            <Feather name="arrow-right" size={20} color="#fff" />
-          </View>
+          <Feather name="plus" size={24} color="#fff" />
+          <Text style={styles.fabText}>Start New Order</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -343,6 +508,56 @@ const styles = StyleSheet.create({
     borderRadius: 10, borderWidth: 1,
   },
   searchInput: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', height: '100%' },
+  
+  // Banner Carousel Styles
+  bannerSection: {
+    position: 'relative',
+    height: BANNER_HEIGHT,
+    backgroundColor: '#f5f5f5',
+  },
+  bannerScroll: {
+    paddingRight: Platform.OS === 'web' ? 0 : 16,
+  },
+  bannerSlide: {
+    width: SCREEN_WIDTH - 32,
+    height: BANNER_HEIGHT,
+    marginRight: 0,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  paginationDots: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+  },
+  
+  // Custom Printed Banner - Below Categories
+  customBanner: {
+    width: '100%',
+    height: CUSTOM_BANNER_HEIGHT,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+  },
+  customBannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  
   heroBanner: { borderRadius: 16, overflow: 'hidden', flexDirection: 'row', height: 160 },
   heroContent: { flex: 1, padding: 18, justifyContent: 'center', gap: 4 },
   heroTag: { fontSize: 10, fontFamily: 'Inter_700Bold', color: 'rgba(255,255,255,0.7)', letterSpacing: 1 },
@@ -378,4 +593,45 @@ const styles = StyleSheet.create({
   ctaTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#fff' },
   ctaSub: { fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   ctaArrow: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  valuePropsGrid: { gap: 12 },
+  valuePropCard: { padding: 18, borderWidth: 1, gap: 10 },
+  valuePropIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  valuePropTitle: { fontSize: 15, fontFamily: 'Inter_700Bold' },
+  valuePropDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 20 },
+  aboutCard: { padding: 18 },
+  aboutText: { fontSize: 13, fontFamily: 'Inter_400Regular', lineHeight: 20, textAlign: 'center' },
+  contactGrid: { gap: 12 },
+  contactCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderWidth: 1, gap: 14 },
+  contactIconWrap: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  contactInfo: { flex: 1, gap: 2 },
+  contactLabel: { fontSize: 11, fontFamily: 'Inter_500Medium' },
+  contactValue: { fontSize: 16, fontFamily: 'Inter_700Bold' },
+  
+  // Floating Action Button
+  fabContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
+  },
 });

@@ -35,7 +35,11 @@ export default function OrdersListPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return orders.filter((o) => {
-      const matchesQuery = !q || o.orderId.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
+      const matchesQuery = !q || 
+        o.orderId.toLowerCase().includes(q) || 
+        o.id.toLowerCase().includes(q) ||
+        (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+        (o.customerPhone && o.customerPhone.toLowerCase().includes(q));
       const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
       return matchesQuery && matchesStatus;
     });
@@ -53,7 +57,7 @@ export default function OrdersListPage() {
         <Box sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <TextField
             size="small"
-            placeholder="Search by order ID..."
+            placeholder="Search by order ID, customer name, or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             sx={{ flex: 1, minWidth: 220 }}
@@ -93,6 +97,7 @@ export default function OrdersListPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Order ID</TableCell>
+                <TableCell>Customer</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Items</TableCell>
                 <TableCell>Total</TableCell>
@@ -104,6 +109,22 @@ export default function OrdersListPage() {
               {filtered.map((order) => (
                 <TableRow key={order.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/orders/${order.id}`)}>
                   <TableCell sx={{ fontWeight: 600 }}>{order.orderId}</TableCell>
+                  <TableCell>
+                    {order.customerName ? (
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {order.customerName}
+                        </Typography>
+                        {order.customerPhone && (
+                          <Typography variant="caption" color="text.secondary">
+                            {order.customerPhone}
+                          </Typography>
+                        )}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">—</Typography>
+                    )}
+                  </TableCell>
                   <TableCell>{new Date(order.createdAt).toLocaleDateString('en-IN')}</TableCell>
                   <TableCell>{order.items?.length ?? 0}</TableCell>
                   <TableCell>{formatCurrency(order.total)}</TableCell>
@@ -115,7 +136,7 @@ export default function OrdersListPage() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 5, color: 'text.secondary' }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 5, color: 'text.secondary' }}>
                     No orders found.
                   </TableCell>
                 </TableRow>

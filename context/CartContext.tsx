@@ -67,6 +67,9 @@ export interface Order {
   totalAmount: number;
   gstin: string;
   businessName: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   address: string;
   gstNumber: string;
   paymentMethod: string;
@@ -85,7 +88,7 @@ interface CartContextType {
   clearCart: () => void;
   cartTotal: number;
   orders: Order[];
-  placeOrder: (address: string, gstNumber: string, paymentMethod: string) => Order;
+  placeOrder: (address: string, gstNumber: string, paymentMethod: string) => Promise<Order>;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -94,9 +97,31 @@ const CART_KEY = '@packorder_cart';
 const ORDERS_COLLECTION = 'orders';
 const CARTS_COLLECTION = 'carts';
 
-/** Firestore can't store require() image assets, so they're stripped before writing. */
+/** Firestore can't store require() image assets or undefined values, so they're stripped before writing. */
 function stripImagesForFirestore(items: CartItem[]) {
-  return items.map(({ productImage, ...rest }) => rest);
+  return items.map(({ productImage, ...item }) => {
+    // Remove undefined fields to avoid Firestore errors
+    const cleaned: any = {};
+    Object.keys(item).forEach(key => {
+      const value = (item as any)[key];
+      if (value !== undefined) {
+        cleaned[key] = value;
+      }
+    });
+    return cleaned;
+  });
+}
+
+/** Remove undefined values from an object before writing to Firestore */
+function cleanForFirestore<T extends Record<string, any>>(obj: T): Partial<T> {
+  const cleaned: any = {};
+  Object.keys(obj).forEach(key => {
+    const value = obj[key];
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  });
+  return cleaned;
 }
 
 /** Re-attaches the bundled local image asset by productId after reading cart items back from Firestore. */
@@ -109,7 +134,7 @@ function withLocalImages(items: CartItem[]): CartItem[] {
 }
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [config, setConfigState] = useState<OrderConfig>({});
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -240,15 +265,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       status: 'confirmed',
     };
     if (user) {
-      setDoc(doc(db, ORDERS_COLLECTION, order.id), {
+      const orderData = cleanForFirestore({
         ...order,
         items: stripImagesForFirestore(order.items),
         userId: user.uid,
-      }).catch((err) => console.warn('[orders] Failed to save order to Firestore:', err));
+        customerName: profile?.name,
+        customerPhone: profile?.phone,
+        customerEmail: profile?.email,
+      });
+
+      setDoc(doc(db, ORDERS_COLLECTION, order.id), orderData)
+        .catch((err) => console.warn('[orders] Failed to save order to Firestore:', err));
     }
     persistCart([]);
     return order;
-  }, [cart, cartTotal, user, persistCart]);
+  }, [cart, cartTotal, user, profile, persistCart]);
 
   return (
     <CartContext.Provider value={{

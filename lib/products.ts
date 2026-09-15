@@ -35,15 +35,30 @@ function withLocalImage(product: Omit<StockProduct, 'image'> & { image?: unknown
 /** Fetches all products from Firestore. Falls back to the local static list on error. */
 export async function fetchProducts(): Promise<StockProduct[]> {
   try {
+    console.log('[products] Fetching products from Firestore...');
     const snapshot = await getDocs(collection(db, PRODUCTS_COLLECTION));
-    if (snapshot.empty) return STOCK_PRODUCTS;
-    return snapshot.docs
+    console.log('[products] Fetched', snapshot.size, 'products from Firestore');
+    
+    if (snapshot.empty) {
+      console.warn('[products] Firestore returned empty, using local fallback');
+      return STOCK_PRODUCTS;
+    }
+    
+    const products = snapshot.docs
       // Admin Portal's "Visible in Buyer App" toggle sets `visible: false` to hide
       // a product from the catalog without deleting it. Undefined = visible (legacy docs).
-      .filter((d) => d.data().visible !== false)
+      .filter((d) => {
+        const visible = d.data().visible !== false;
+        if (!visible) console.log('[products] Filtering out hidden product:', d.id);
+        return visible;
+      })
       .map((d) => withLocalImage({ id: d.id, ...d.data() } as StockProduct));
+    
+    console.log('[products] Returning', products.length, 'visible products');
+    return products;
   } catch (err) {
-    console.warn('[products] Failed to fetch from Firestore, using local fallback:', err);
+    console.error('[products] Failed to fetch from Firestore:', err);
+    console.warn('[products] Using local fallback with', STOCK_PRODUCTS.length, 'products');
     return STOCK_PRODUCTS;
   }
 }

@@ -439,7 +439,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     width: '100%',
     borderWidth: 0,
-    outlineStyle: 'none',
   },
   quickQtyRow: { flexDirection: 'row', gap: 8 },
   quickQtyBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },

@@ -111,6 +111,10 @@ export interface Order {
   id: string;
   orderId: string;
   userId: string;
+  /** Customer contact information captured at order time */
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   items: OrderItem[];
   total: number;
   subtotal?: number;

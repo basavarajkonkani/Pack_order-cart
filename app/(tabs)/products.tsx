@@ -48,9 +48,8 @@ export default function ProductsScreen() {
     else if (selectedFilter !== 'all') {
       filtered = filtered.filter((p) => {
         const productCategoryId = (p as any).categoryId;
-        // If product has no categoryId, show it in all filters (backward compatibility)
-        // If product has categoryId, only show if it matches the filter
-        return !productCategoryId || productCategoryId === selectedFilter;
+        // Only show products that match the selected category
+        return productCategoryId === selectedFilter;
       });
     }
     
@@ -204,9 +203,11 @@ export default function ProductsScreen() {
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
           {categoryId 
             ? `FILTERED BY CATEGORY (${filteredProducts.length})`
+            : selectedFilter !== 'all'
+            ? `${categories.find(c => c.id === selectedFilter)?.name.toUpperCase() || 'FILTERED'} (${filteredProducts.length})`
             : search.trim() 
             ? `SEARCH RESULTS (${filteredProducts.length})` 
-            : 'AVAILABLE PRODUCTS'}
+            : `AVAILABLE PRODUCTS (${filteredProducts.length})`}
         </Text>
 
         {filteredProducts.length === 0 && (
