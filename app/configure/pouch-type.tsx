@@ -12,10 +12,11 @@ import * as Haptics from 'expo-haptics';
 /**
  * Plain pouches aren't configurable here — they're sold from the ready-stock
  * catalog (Stock Pouches tab), so the wizard only covers printed and kraft.
+ * Images are loaded from Firebase Storage URLs.
  */
 const OPTIONS: { type: PouchType; label: string; desc: string; image: ImageSourcePropType; detail: string }[] = [
-  { type: 'printed', label: 'Printed Pouches', desc: 'Custom Printing', image: require('@/assets/images/gold-standy-pouch.jpg'), detail: 'Full-colour flexographic or digital printing for brand identity.' },
-  { type: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium Look', image: require('@/assets/images/kraft-standy-pouch-brown.jpg'), detail: 'Eco-friendly kraft paper with a natural, premium finish.' },
+  { type: 'printed', label: 'Printed Pouches', desc: 'Custom Printing', image: { uri: 'https://firebasestorage.googleapis.com/v0/b/shop-cart-flow.appspot.com/o/products%2Fgold-standy.jpg?alt=media' }, detail: 'Full-colour flexographic or digital printing for brand identity.' },
+  { type: 'kraft', label: 'Kraft Pouches', desc: 'Natural & Premium Look', image: { uri: 'https://firebasestorage.googleapis.com/v0/b/shop-cart-flow.appspot.com/o/products%2Fkraft-standy.jpg?alt=media' }, detail: 'Eco-friendly kraft paper with a natural, premium finish.' },
 ];
 
 const isSelectable = (type?: PouchType): type is PouchType =>

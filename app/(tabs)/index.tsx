@@ -23,17 +23,6 @@ import { CategorySkeleton } from '@/components/CategorySkeleton';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import { prefetchImages } from '@/lib/imageOptimization';
 
-/**
- * Maps a category id/slug to a bundled local image so existing categories
- * (plain, printed, kraft) still show their original photos when no imageUrl
- * is stored in Firestore. Admin-added categories that supply an imageUrl will
- * use the remote image instead.
- */
-const LOCAL_IMAGES: Record<string, ReturnType<typeof require>> = {
-  plain: require('@/assets/images/silver-standy-pouch.jpg'),
-  printed: require('@/assets/images/gold-standy-pouch.jpg'),
-  kraft: require('@/assets/images/kraft-standy-pouch-brown.jpg'),
-};
 const PLACEHOLDER_IMAGE = require('@/assets/images/logo.png');
 
 // Banner carousel images
@@ -114,10 +103,10 @@ function getCategoryTarget(cat: AppCategory) {
     router.push({ pathname: '/configure/pouch-type', params: { preset: cat.id } });
 }
 
-/** Returns the image source for a category — remote URL, local bundle, or placeholder. */
+/** Returns the image source for a category — remote URL or placeholder. */
 function getCategoryImage(cat: AppCategory) {
   if (cat.imageUrl) return { uri: cat.imageUrl };
-  return LOCAL_IMAGES[cat.id] ?? PLACEHOLDER_IMAGE;
+  return PLACEHOLDER_IMAGE;
 }
 
 export default function HomeScreen() {
@@ -447,7 +436,7 @@ export default function HomeScreen() {
         <TouchableOpacity
           activeOpacity={0.85}
           style={[styles.fab, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/configure/pouch-type')}
+          onPress={() => router.push('/(tabs)/products')}
           accessibilityRole="button"
           accessibilityLabel="Start New Order"
         >

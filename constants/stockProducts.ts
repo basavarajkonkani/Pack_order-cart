@@ -47,7 +47,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'matt-standy-zipper-pouch',
     name: 'Matt Standy Zipper Pouch',
     desc: 'Elegant matte finish standy pouch with zipper, 3 sides sealed with bottom gusset and tear notch. Perfect for premium packaging.',
-    image: require('@/assets/images/gold-standy-pouch.jpg'), // Update with actual matt pouch image
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'PET + Poly',
@@ -74,7 +74,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'matt-window-standy-zipper-pouch',
     name: 'Matt Window Standy Zipper Pouch',
     desc: 'Premium matte finish standy pouch with transparent window and zipper. Perfect for showcasing products while maintaining elegant aesthetics.',
-    image: require('@/assets/images/gold-standy-pouch.jpg'), // Update with actual matt window pouch image
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 135,
     material: 'PET + Poly + Window',
@@ -105,7 +105,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'gold-standy',
     name: 'Gold Standy Pouch',
     desc: 'Premium gold standy pouch with excellent barrier properties, perfect for premium products and long shelf life.',
-    image: require('@/assets/images/gold-standy-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'Metalized',
@@ -119,7 +119,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'gold-standy-zipper',
     name: 'Gold Standy Zipper Pouch',
     desc: 'Shiny gold in colour, 3 sides sealed with bottom gusset, tear notch and zipper. Ideal for packing dry fruits, herbs, grains, tea/coffee powder, spices etc.',
-    image: require('@/assets/images/gold-standy-zipper-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'PET + Poly',
@@ -138,7 +138,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'silver-standy',
     name: 'Silver Standy Pouch',
     desc: 'Shiny silver standy pouch, 3 sides sealed with bottom gusset and tear notch. Ideal for packing dry fruits, protein powder, spices, tea/coffee powder, seeds etc.',
-    image: require('@/assets/images/silver-standy-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'PET + Poly',
@@ -160,7 +160,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'silver-standy-zipper',
     name: 'Silver Standy Zipper Pouch',
     desc: 'Shiny silver standy pouch, 3 sides sealed with bottom gusset, tear notch and zipper. Ideal for packing dry fruits, pickle, confectionery, herbs, spices etc.',
-    image: require('@/assets/images/silver-standy-zipper-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'PET + Poly',
@@ -182,7 +182,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'kraft-standy',
     name: 'Kraft Standy Pouch (Brown)',
     desc: 'Brown in colour, 3 sides sealed with bottom gusset, tear notch and zipper. Ideal for packing dry fruits, grains, herbs, tea/coffee powder, spices etc.',
-    image: require('@/assets/images/kraft-standy-pouch-brown.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 140,
     material: 'Kraft Paper + Poly',
@@ -202,7 +202,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'kraft-window-standy-brown',
     name: 'Kraft Window Standy Pouch (Brown)',
     desc: 'Brown in colour, 3 sides sealed with bottom gusset, tear notch, zipper and window. Ideal for packing dry fruits, protein powder, spices, grains etc.',
-    image: require('@/assets/images/kraft-window-standy-pouch-brown.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 135,
     material: 'Kraft Paper + Poly + Window',
@@ -224,7 +224,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'kraft-window-standy-white',
     name: 'Kraft Window Standy Pouch (White)',
     desc: 'White in colour, 3 sides sealed with bottom gusset, tear notch, zipper and window. Ideal for packing dry fruits, grains, tea/coffee powder, herbs, confectionery etc.',
-    image: require('@/assets/images/kraft-window-standy-pouch-white.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 135,
     material: 'Kraft Paper + Poly + Window',
@@ -243,7 +243,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'milky-standy',
     name: 'Milky Standy Pouch',
     desc: 'White in colour, 3 side sealed with bottom gusset and tear notch. Ideal for packing dry fruits, grains, protein powder, seeds, herbs etc.',
-    image: require('@/assets/images/milky-standy-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'PET + Poly',
@@ -262,7 +262,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'milky-standy-zipper',
     name: 'Milky Standy Zipper Pouch',
     desc: 'White in colour, 3 sides sealed with bottom gusset, tear notch and zipper. Ideal for packing dry fruits, grains, confectionery, seeds, pickle etc.',
-    image: require('@/assets/images/milky-standy-zipper-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Medium',
     micron: 112,
     material: 'PET + Poly',
@@ -281,7 +281,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'center-seal',
     name: 'Center Seal Pouch',
     desc: 'Classic center seal (pillow) pouch, a cost-effective flat pouch ideal for high-volume packing of snacks and grains.',
-    image: require('@/assets/images/center-seal-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Small',
     micron: 90,
     material: 'Laminate',
@@ -300,7 +300,7 @@ export const STOCK_PRODUCTS: StockProduct[] = [
     id: 'batter-pouch',
     name: 'Idly Dosa Batter Pouch',
     desc: 'White in colour, 3 sides sealed with bottom gusset, tear notch and zipper. Ideal for packing idly / dosa batter.',
-    image: require('@/assets/images/batter-pouch.jpg'),
+    image: require('@/assets/images/logo.png'), // Placeholder - actual image from Firebase Storage
     size: 'Small',
     micron: 72,
     material: 'PET + Poly',

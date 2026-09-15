@@ -4,28 +4,16 @@ import { StockProduct, STOCK_PRODUCTS } from '@/constants/stockProducts';
 
 const PRODUCTS_COLLECTION = 'products';
 
-/**
- * Firestore doesn't store React Native `require()` image assets, so legacy
- * (seeded) products keep their images bundled locally and matched back by
- * product id. Products created via the Admin Portal instead carry a real
- * `imageUrl` (Firebase Storage download URL) on the Firestore doc — that
- * takes priority when present, so admin-added products render correctly
- * without needing a matching bundled asset. If neither is available (e.g. an
- * Admin Portal product created without an image), a neutral placeholder is
- * used instead of another product's photo.
- */
-// Neutral placeholder for Admin Portal-created products that don't have an
-// imageUrl yet (image upload is optional there). Previously this fell back to
-// STOCK_PRODUCTS[0].image, which meant every image-less product wrongly showed
-// the Gold Standy Pouch photo.
+// Neutral placeholder for products without images
 const PLACEHOLDER_IMAGE = require('@/assets/images/logo.png');
 
 function withLocalImage(product: Omit<StockProduct, 'image'> & { image?: unknown; imageUrl?: unknown }): StockProduct {
-  const local = STOCK_PRODUCTS.find((p) => p.id === product.id);
   const remoteImageUrl = typeof product.imageUrl === 'string' && product.imageUrl.trim() ? product.imageUrl : undefined;
+  const local = STOCK_PRODUCTS.find((p) => p.id === product.id);
+  
   return {
     ...product,
-    image: remoteImageUrl ? { uri: remoteImageUrl } : (local?.image ?? PLACEHOLDER_IMAGE),
+    image: remoteImageUrl ? { uri: remoteImageUrl } : PLACEHOLDER_IMAGE,
     // Firestore docs that predate the `sizes` field (or were seeded
     // incompletely) shouldn't crash consumers that expect `sizes` to be an array.
     sizes: Array.isArray(product.sizes) && product.sizes.length > 0 ? product.sizes : (local?.sizes ?? []),
