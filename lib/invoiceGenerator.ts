@@ -52,7 +52,7 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Tax Invoice - ${order.orderId}</title>
   <style>
     * {
@@ -60,372 +60,189 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       margin: 0;
       padding: 0;
     }
-    html {
-      -webkit-text-size-adjust: 100%;
+    html, body {
       width: 100%;
       height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: none;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      margin: 0;
-      padding: 8px;
-      background: #f9fafb;
-      width: 100%;
-      min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 12px;
+      background: #ffffff;
+      font-size: 13px;
+      line-height: 1.5;
     }
     .invoice {
       width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
       background: white;
-      padding: 16px;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       overflow-x: hidden;
-      word-wrap: break-word;
     }
-    @media (min-width: 769px) {
+    @media print {
       body {
-        padding: 20px;
-      }
-      .invoice {
-        padding: 40px;
-      }
-    }
-    @media (max-width: 768px) {
-      body {
-        padding: 6px;
-      }
-      .invoice {
-        padding: 12px;
-      }
-      .totals {
-        max-width: 100%;
-        padding: 0;
-      }
-      .totals-row {
-        font-size: 13px;
-      }
-      .grand-total .amount {
-        font-size: 16px !important;
-      }
-    }
-    @media (max-width: 480px) {
-      body {
-        padding: 4px;
-      }
-      .invoice {
         padding: 10px;
       }
     }
     .header {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
       border-bottom: 2px solid #3b82f6;
     }
-    @media (min-width: 600px) {
-      .header {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: start;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        gap: 15px;
-      }
-    }
     .company-info h1 {
-      margin: 0 0 4px 0;
-      font-size: 18px;
+      font-size: 20px;
       color: #1f2937;
-      line-height: 1.3;
-    }
-    @media (min-width: 600px) {
-      .company-info h1 {
-        font-size: 28px;
-        margin-bottom: 5px;
-      }
+      margin-bottom: 4px;
+      font-weight: 700;
     }
     .company-info p {
-      margin: 2px 0;
-      color: #6b7280;
       font-size: 12px;
-      line-height: 1.4;
-    }
-    @media (min-width: 600px) {
-      .company-info p {
-        font-size: 14px;
-      }
+      color: #6b7280;
+      margin: 2px 0;
     }
     .invoice-meta {
       text-align: left;
-    }
-    @media (min-width: 600px) {
-      .invoice-meta {
-        text-align: right;
-      }
+      margin-top: 8px;
     }
     .invoice-meta h2 {
-      margin: 0 0 8px 0;
       font-size: 18px;
       color: #3b82f6;
-      line-height: 1.3;
-    }
-    @media (min-width: 600px) {
-      .invoice-meta h2 {
-        font-size: 24px;
-        margin-bottom: 10px;
-      }
+      margin-bottom: 6px;
+      font-weight: 700;
     }
     .invoice-meta p {
-      margin: 2px 0;
-      color: #6b7280;
       font-size: 12px;
-      line-height: 1.4;
-    }
-    @media (min-width: 600px) {
-      .invoice-meta p {
-        font-size: 14px;
-        margin: 3px 0;
-      }
+      color: #6b7280;
+      margin: 2px 0;
     }
     .parties {
       display: flex;
       flex-direction: column;
-      margin-bottom: 16px;
-      gap: 12px;
-    }
-    @media (min-width: 600px) {
-      .parties {
-        flex-direction: row;
-        justify-content: space-between;
-        margin-bottom: 30px;
-        gap: 20px;
-      }
+      gap: 10px;
+      margin-bottom: 14px;
     }
     .party-box {
-      flex: 1;
-      padding: 12px;
+      padding: 10px;
       background: #f9fafb;
       border-radius: 6px;
       border: 1px solid #e5e7eb;
     }
-    @media (min-width: 600px) {
-      .party-box {
-        padding: 20px;
-        border-radius: 8px;
-      }
-    }
     .party-box h3 {
-      margin: 0 0 10px 0;
       font-size: 11px;
       color: #6b7280;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      margin-bottom: 8px;
       font-weight: 600;
     }
-    @media (min-width: 600px) {
-      .party-box h3 {
-        font-size: 14px;
-        margin-bottom: 12px;
-      }
-    }
     .party-box p {
-      margin: 3px 0;
-      color: #1f2937;
       font-size: 12px;
+      color: #1f2937;
+      margin: 3px 0;
       word-wrap: break-word;
-      line-height: 1.5;
-    }
-    @media (min-width: 600px) {
-      .party-box p {
-        font-size: 14px;
-        margin: 4px 0;
-      }
+      overflow-wrap: break-word;
     }
     .party-box .gstin {
-      font-family: 'Courier New', Courier, monospace;
+      font-family: 'Courier New', monospace;
       font-weight: bold;
       color: #3b82f6;
       font-size: 11px;
       word-break: break-all;
-      display: inline-block;
-      max-width: 100%;
-    }
-    @media (min-width: 600px) {
-      .party-box .gstin {
-        font-size: 13px;
-      }
+      display: block;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 16px;
-      font-size: 11px;
-      table-layout: fixed;
-    }
-    @media (min-width: 600px) {
-      table {
-        margin-bottom: 30px;
-        font-size: 14px;
-        table-layout: auto;
-      }
+      margin-bottom: 14px;
+      font-size: 12px;
     }
     th {
       background: #f3f4f6;
-      padding: 8px 4px;
+      padding: 8px 6px;
       text-align: left;
-      font-size: 10px;
+      font-size: 11px;
       color: #374151;
       text-transform: uppercase;
       letter-spacing: 0.3px;
       border-bottom: 2px solid #e5e7eb;
       font-weight: 600;
     }
-    @media (min-width: 600px) {
-      th {
-        padding: 12px 8px;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-      }
-    }
     th:last-child, td:last-child {
       text-align: right;
     }
     td {
-      padding: 8px 4px;
-      font-size: 11px;
+      padding: 8px 6px;
+      font-size: 12px;
       color: #1f2937;
+      border-bottom: 1px solid #e5e7eb;
       word-wrap: break-word;
+      overflow-wrap: break-word;
     }
-    @media (min-width: 600px) {
-      td {
-        padding: 12px 8px;
-        font-size: 14px;
-      }
+    td strong {
+      display: block;
+      margin-bottom: 2px;
     }
     td small {
-      font-size: 10px;
-      line-height: 1.3;
+      font-size: 11px;
+      color: #6b7280;
       display: block;
+      line-height: 1.3;
       margin-top: 2px;
     }
-    @media (min-width: 600px) {
-      td small {
-        font-size: 12px;
-      }
-    }
     .totals {
-      margin-left: auto;
       width: 100%;
-      max-width: 100%;
-      padding: 0;
-    }
-    @media (min-width: 600px) {
-      .totals {
-        max-width: 350px;
-        padding: 0 10px;
-      }
+      margin-top: 10px;
     }
     .totals-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 7px 0;
-      font-size: 12px;
-      gap: 12px;
+      padding: 6px 0;
+      font-size: 13px;
     }
-    @media (min-width: 600px) {
-      .totals-row {
-        padding: 10px 0;
-        font-size: 14px;
-        gap: 20px;
-      }
-    }
-    .totals-row.subtotal {
+    .totals-row.subtotal,
+    .totals-row.gst {
       color: #6b7280;
     }
     .totals-row.gst {
-      color: #6b7280;
       border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
     }
     .totals-row.grand-total {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: bold;
       color: #1f2937;
-      padding-top: 10px;
-    }
-    @media (min-width: 600px) {
-      .totals-row.grand-total {
-        font-size: 18px;
-        padding-top: 12px;
-      }
+      padding-top: 8px;
     }
     .grand-total .amount {
       color: #3b82f6;
-      font-size: 16px;
-    }
-    @media (min-width: 600px) {
-      .grand-total .amount {
-        font-size: 22px;
-      }
+      font-size: 18px;
+      font-weight: bold;
     }
     .footer {
-      margin-top: 20px;
-      padding-top: 12px;
+      margin-top: 16px;
+      padding-top: 10px;
       border-top: 1px solid #e5e7eb;
       text-align: center;
       color: #6b7280;
-      font-size: 10px;
-      line-height: 1.5;
-    }
-    @media (min-width: 600px) {
-      .footer {
-        margin-top: 40px;
-        padding-top: 20px;
-        font-size: 12px;
-      }
+      font-size: 11px;
     }
     .notes {
-      margin-top: 16px;
+      margin-top: 14px;
       padding: 10px;
       background: #fef3c7;
       border-left: 3px solid #f59e0b;
       border-radius: 4px;
-    }
-    @media (min-width: 600px) {
-      .notes {
-        margin-top: 30px;
-        padding: 15px;
-        border-left-width: 4px;
-      }
     }
     .notes p {
       margin: 0;
       color: #92400e;
       font-size: 11px;
       line-height: 1.5;
-    }
-    @media (min-width: 600px) {
-      .notes p {
-        font-size: 13px;
-      }
-    }
-    @media print {
-      body {
-        background: white;
-        padding: 0;
-      }
-      .invoice {
-        box-shadow: none;
-        border: none;
-        padding: 20px;
-      }
     }
   </style>
 </head>
@@ -465,10 +282,10 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
     <table>
       <thead>
         <tr>
-          <th style="width: 30px;">#</th>
-          <th>Item Description</th>
-          <th style="width: 60px; text-align: center;">Qty</th>
-          <th style="width: 80px;">Amount</th>
+          <th style="width: 35px;">#</th>
+          <th>Item</th>
+          <th style="width: 65px; text-align: center;">Qty</th>
+          <th style="width: 90px;">Amount</th>
         </tr>
       </thead>
       <tbody>
@@ -478,16 +295,16 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
 
     <div class="totals">
       <div class="totals-row subtotal">
-        <span style="flex: 1;">Subtotal</span>
-        <span style="text-align: right; min-width: 80px;">₹${order.subtotal.toLocaleString('en-IN')}</span>
+        <span>Subtotal</span>
+        <span>₹${order.subtotal.toLocaleString('en-IN')}</span>
       </div>
       <div class="totals-row gst">
-        <span style="flex: 1;">GST (${order.gstPercentage}%)</span>
-        <span style="text-align: right; min-width: 80px;">₹${order.gstAmount.toLocaleString('en-IN')}</span>
+        <span>GST (${order.gstPercentage}%)</span>
+        <span>₹${order.gstAmount.toLocaleString('en-IN')}</span>
       </div>
       <div class="totals-row grand-total">
-        <span style="flex: 1;">Grand Total</span>
-        <span class="amount" style="text-align: right; min-width: 100px;">₹${order.totalAmount.toLocaleString('en-IN')}</span>
+        <span>Grand Total</span>
+        <span class="amount">₹${order.totalAmount.toLocaleString('en-IN')}</span>
       </div>
     </div>
 
