@@ -52,32 +52,39 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
   <title>Tax Invoice - ${order.orderId}</title>
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
     html {
       -webkit-text-size-adjust: 100%;
+      width: 100%;
+      height: 100%;
     }
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       margin: 0;
-      padding: 10px;
+      padding: 8px;
       background: #f9fafb;
       width: 100%;
+      min-height: 100vh;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
     .invoice {
       width: 100%;
       max-width: 900px;
       margin: 0 auto;
       background: white;
-      padding: 20px;
+      padding: 16px;
       border: 1px solid #e5e7eb;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       overflow-x: hidden;
+      word-wrap: break-word;
     }
     @media (min-width: 769px) {
       body {
@@ -88,8 +95,11 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       }
     }
     @media (max-width: 768px) {
+      body {
+        padding: 6px;
+      }
       .invoice {
-        padding: 15px;
+        padding: 12px;
       }
       .totals {
         max-width: 100%;
@@ -99,15 +109,23 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
         font-size: 13px;
       }
       .grand-total .amount {
-        font-size: 18px !important;
+        font-size: 16px !important;
+      }
+    }
+    @media (max-width: 480px) {
+      body {
+        padding: 4px;
+      }
+      .invoice {
+        padding: 10px;
       }
     }
     .header {
       display: flex;
       flex-direction: column;
-      gap: 15px;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
       border-bottom: 2px solid #3b82f6;
     }
     @media (min-width: 600px) {
@@ -117,22 +135,26 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
         align-items: start;
         margin-bottom: 30px;
         padding-bottom: 20px;
+        gap: 15px;
       }
     }
     .company-info h1 {
-      margin: 0 0 5px 0;
-      font-size: 22px;
+      margin: 0 0 4px 0;
+      font-size: 18px;
       color: #1f2937;
+      line-height: 1.3;
     }
     @media (min-width: 600px) {
       .company-info h1 {
         font-size: 28px;
+        margin-bottom: 5px;
       }
     }
     .company-info p {
       margin: 2px 0;
       color: #6b7280;
-      font-size: 13px;
+      font-size: 12px;
+      line-height: 1.4;
     }
     @media (min-width: 600px) {
       .company-info p {
@@ -148,30 +170,34 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       }
     }
     .invoice-meta h2 {
-      margin: 0 0 10px 0;
-      font-size: 20px;
+      margin: 0 0 8px 0;
+      font-size: 18px;
       color: #3b82f6;
+      line-height: 1.3;
     }
     @media (min-width: 600px) {
       .invoice-meta h2 {
         font-size: 24px;
+        margin-bottom: 10px;
       }
     }
     .invoice-meta p {
-      margin: 3px 0;
+      margin: 2px 0;
       color: #6b7280;
-      font-size: 13px;
+      font-size: 12px;
+      line-height: 1.4;
     }
     @media (min-width: 600px) {
       .invoice-meta p {
         font-size: 14px;
+        margin: 3px 0;
       }
     }
     .parties {
       display: flex;
       flex-direction: column;
-      margin-bottom: 20px;
-      gap: 15px;
+      margin-bottom: 16px;
+      gap: 12px;
     }
     @media (min-width: 600px) {
       .parties {
@@ -183,45 +209,52 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
     }
     .party-box {
       flex: 1;
-      padding: 15px;
+      padding: 12px;
       background: #f9fafb;
-      border-radius: 8px;
+      border-radius: 6px;
       border: 1px solid #e5e7eb;
     }
     @media (min-width: 600px) {
       .party-box {
         padding: 20px;
+        border-radius: 8px;
       }
     }
     .party-box h3 {
-      margin: 0 0 12px 0;
-      font-size: 13px;
+      margin: 0 0 10px 0;
+      font-size: 11px;
       color: #6b7280;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      font-weight: 600;
     }
     @media (min-width: 600px) {
       .party-box h3 {
         font-size: 14px;
+        margin-bottom: 12px;
       }
     }
     .party-box p {
-      margin: 4px 0;
+      margin: 3px 0;
       color: #1f2937;
-      font-size: 13px;
+      font-size: 12px;
       word-wrap: break-word;
+      line-height: 1.5;
     }
     @media (min-width: 600px) {
       .party-box p {
         font-size: 14px;
+        margin: 4px 0;
       }
     }
     .party-box .gstin {
-      font-family: monospace;
+      font-family: 'Courier New', Courier, monospace;
       font-weight: bold;
       color: #3b82f6;
-      font-size: 12px;
+      font-size: 11px;
       word-break: break-all;
+      display: inline-block;
+      max-width: 100%;
     }
     @media (min-width: 600px) {
       .party-box .gstin {
@@ -231,24 +264,27 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
-      font-size: 12px;
+      margin-bottom: 16px;
+      font-size: 11px;
+      table-layout: fixed;
     }
     @media (min-width: 600px) {
       table {
         margin-bottom: 30px;
         font-size: 14px;
+        table-layout: auto;
       }
     }
     th {
       background: #f3f4f6;
-      padding: 10px 6px;
+      padding: 8px 4px;
       text-align: left;
-      font-size: 11px;
+      font-size: 10px;
       color: #374151;
       text-transform: uppercase;
       letter-spacing: 0.3px;
       border-bottom: 2px solid #e5e7eb;
+      font-weight: 600;
     }
     @media (min-width: 600px) {
       th {
@@ -261,9 +297,10 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       text-align: right;
     }
     td {
-      padding: 10px 6px;
-      font-size: 12px;
+      padding: 8px 4px;
+      font-size: 11px;
       color: #1f2937;
+      word-wrap: break-word;
     }
     @media (min-width: 600px) {
       td {
@@ -272,7 +309,10 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       }
     }
     td small {
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.3;
+      display: block;
+      margin-top: 2px;
     }
     @media (min-width: 600px) {
       td small {
@@ -295,9 +335,9 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
-      font-size: 13px;
-      gap: 15px;
+      padding: 7px 0;
+      font-size: 12px;
+      gap: 12px;
     }
     @media (min-width: 600px) {
       .totals-row {
@@ -312,22 +352,23 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
     .totals-row.gst {
       color: #6b7280;
       border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 12px;
+      padding-bottom: 10px;
     }
     .totals-row.grand-total {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
       color: #1f2937;
-      padding-top: 12px;
+      padding-top: 10px;
     }
     @media (min-width: 600px) {
       .totals-row.grand-total {
         font-size: 18px;
+        padding-top: 12px;
       }
     }
     .grand-total .amount {
       color: #3b82f6;
-      font-size: 18px;
+      font-size: 16px;
     }
     @media (min-width: 600px) {
       .grand-total .amount {
@@ -335,12 +376,13 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       }
     }
     .footer {
-      margin-top: 30px;
-      padding-top: 15px;
+      margin-top: 20px;
+      padding-top: 12px;
       border-top: 1px solid #e5e7eb;
       text-align: center;
       color: #6b7280;
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.5;
     }
     @media (min-width: 600px) {
       .footer {
@@ -350,22 +392,24 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       }
     }
     .notes {
-      margin-top: 20px;
-      padding: 12px;
+      margin-top: 16px;
+      padding: 10px;
       background: #fef3c7;
-      border-left: 4px solid #f59e0b;
+      border-left: 3px solid #f59e0b;
       border-radius: 4px;
     }
     @media (min-width: 600px) {
       .notes {
         margin-top: 30px;
         padding: 15px;
+        border-left-width: 4px;
       }
     }
     .notes p {
       margin: 0;
       color: #92400e;
-      font-size: 12px;
+      font-size: 11px;
+      line-height: 1.5;
     }
     @media (min-width: 600px) {
       .notes p {
@@ -380,6 +424,7 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
       .invoice {
         box-shadow: none;
         border: none;
+        padding: 20px;
       }
     }
   </style>
@@ -420,10 +465,10 @@ export async function generateInvoiceHTML(invoiceData: InvoiceData): Promise<str
     <table>
       <thead>
         <tr>
-          <th style="width: 50px;">#</th>
+          <th style="width: 30px;">#</th>
           <th>Item Description</th>
-          <th style="width: 100px; text-align: center;">Quantity</th>
-          <th style="width: 120px;">Amount</th>
+          <th style="width: 60px; text-align: center;">Qty</th>
+          <th style="width: 80px;">Amount</th>
         </tr>
       </thead>
       <tbody>
